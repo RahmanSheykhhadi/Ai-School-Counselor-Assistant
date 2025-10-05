@@ -1,13 +1,13 @@
 // Define a cache name for your app.
 // IMPORTANT: Change this name whenever you update your app's files
 // to ensure users get the latest version.
-const CACHE_NAME = 'sca-v1.0.1';
+const CACHE_NAME = 'sca-v1.0.2';
 
 // List of essential files to cache for offline use.
 const urlsToCache = [
   './',
   './index.html',
-  './index.tsx', // This will be fetched by the browser's module loader
+  './index.js', // Cache the compiled JavaScript file
   './fonts.css',
   './manifest.json',
   './icon-192.png',

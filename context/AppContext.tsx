@@ -3,7 +3,6 @@ import type { Classroom, Student, Session, SessionType, WorkingDays, AppSettings
 import * as db from '../services/db';
 import { mockClassrooms, mockStudents, mockSessions, mockSessionTypes, mockWorkingDays, mockAppSettings } from '../data/mockData';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-// FIX: Import 'toPersianDigits' to resolve reference errors.
 import { normalizePersianChars, toPersianDigits } from '../utils/helpers';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -236,11 +235,15 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
   
   const handleSaveSession = async (session: Session | Omit<Session, 'id' | 'academicYear'>) => {
-      const sessionData = { ...session, academicYear: appSettings.academicYear };
-      if ('id' in sessionData) {
+      // FIX: Spread types may only be created from object types.
+      // By checking for 'id' in the session object first, we narrow the union type,
+      // allowing TypeScript to correctly infer the type before the spread operator is used.
+      if ('id' in session) {
+          const sessionData = { ...session, academicYear: appSettings.academicYear };
           await db.putSession(sessionData);
           setSessions(prev => prev.map(s => s.id === sessionData.id ? sessionData : s));
       } else {
+          const sessionData = { ...session, academicYear: appSettings.academicYear };
           const newSession = await db.addSession(sessionData);
           setSessions(prev => [...prev, newSession]);
       }
@@ -407,8 +410,6 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
 
   const handleReorderMoreMenu = async (reorderedMenu: View[]) => {
-      // FIX: Explicitly type the `prev` parameter as `AppSettings` to ensure it is treated as an object,
-      // resolving the "Spread types may only be created from object types" error.
       await setAppSettingsHandler((prev: AppSettings) => ({ ...prev, moreMenuOrder: reorderedMenu }));
   };
 

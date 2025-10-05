@@ -64,7 +64,7 @@ export default function AddSessionModal({ preselectedDate, onClose, onSave }: Ad
             classroom ? ` - ${classroom.name}` : ''
         ].join('');
 
-        // FIX: Defer state updates to the next event loop cycle.
+        // Defer state updates to the next event loop cycle.
         // This prevents a race condition where the dropdown item (the event target)
         // is removed from the DOM before the document's mousedown listener
         // (in Modal.tsx) can verify that the click occurred inside the modal.
@@ -107,7 +107,7 @@ export default function AddSessionModal({ preselectedDate, onClose, onSave }: Ad
                                     return (
                                         <li
                                             key={student.id}
-                                            className="p-2 hover:bg-sky-100 cursor-pointer"
+                                            className="p-3 hover:bg-sky-100 cursor-pointer"
                                             onMouseDown={() => handleSelectStudent(student)}
                                         >
                                             {`${student.firstName} ${student.lastName}`}

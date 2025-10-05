@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import moment from 'jalali-moment';
 import { useAppContext } from '../context/AppContext';
-// FIX: Import the `WorkingDays` type to resolve the reference error.
 import type { Session, WorkingDays } from '../types';
 import DayDetailModal from './DayDetailModal';
 import AddSessionModal from './AddSessionModal';

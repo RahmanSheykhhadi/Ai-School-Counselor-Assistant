@@ -114,7 +114,6 @@ const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file, onClo
       } catch (error: unknown) {
         console.error("Restore error:", error);
         
-        // Re-implemented for maximum robustness to avoid "[object Object]".
         let errorMessage = 'An unexpected error occurred during restore.';
         if (error instanceof Error) {
             errorMessage = error.message;

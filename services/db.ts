@@ -98,9 +98,8 @@ export const getAll = async <T extends keyof MyDB>(storeName: T): Promise<MyDB[T
   return (await dbPromise).getAll(storeName);
 };
 
-// FIX: Constrain the generic type T to only include object stores that have indexes.
 export const getAllFromIndex = async <T extends 'classrooms' | 'students' | 'sessions'>(storeName: T, indexName: keyof MyDB[T]['indexes'], query: IDBValidKey | IDBKeyRange): Promise<MyDB[T]['value'][]> => {
-    return (await dbPromise).getAllFromIndex(storeName as string, indexName as string, query);
+    return (await dbPromise).getAllFromIndex(storeName, indexName, query);
 }
 
 export const getCount = async <T extends keyof MyDB>(storeName: T): Promise<number> => {
@@ -108,11 +107,9 @@ export const getCount = async <T extends keyof MyDB>(storeName: T): Promise<numb
 };
 
 // Settings Specific
-// FIX: Add 'lastSyncTime' to the allowed keys for settings.
 export const getSetting = async (key: 'appSettings' | 'workingDays' | 'lastSyncTime') => {
     return (await dbPromise).get('settings', key);
 };
-// FIX: Add 'lastSyncTime' to the allowed keys for settings.
 export const putSetting = async (key: 'appSettings' | 'workingDays' | 'lastSyncTime', value: any) => {
     return (await dbPromise).put('settings', value, key);
 };

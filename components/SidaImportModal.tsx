@@ -60,10 +60,14 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const files = event.target.files;
         if (!files || files.length === 0) return;
 
-        // Fix: Explicitly type `imageFiles` as `File[]` to ensure correct type inference and resolve potential errors when accessing file properties.
-        const imageFiles: File[] = (Array.from(files) as File[]).filter(file => 
-            /\.(jpe?g|png|gif|webp)$/i.test(file.name)
-        );
+        // FIX: Replaced .filter() with a type-safe for-loop to handle FileList correctly.
+        // This resolves issues where `file.name` was accessed on an `unknown` type.
+        const imageFiles: File[] = [];
+        for (const file of Array.from(files)) {
+            if (file instanceof File && /\.(jpe?g|png|gif|webp)$/i.test(file.name)) {
+                imageFiles.push(file);
+            }
+        }
 
         if (imageFiles.length === 0) {
             alert('هیچ فایل عکس معتبری (jpg, png, gif, webp) در پوشه انتخاب شده یافت نشد.');
@@ -97,7 +101,7 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     updates.push({ studentId, photoUrl });
                     successCount++;
                 } catch (error) {
-                    // FIX: Safely handle the 'error' variable (which is of type 'unknown' in a catch block) by converting it to a string before using it in a template literal.
+                    // FIX: Added a type guard to safely handle the `unknown` error type from the catch block.
                     if (error instanceof Error) {
                         console.error(`Error processing file ${file.name}: ${error.message}`);
                     } else {
