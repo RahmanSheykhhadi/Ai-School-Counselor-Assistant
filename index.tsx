@@ -1,0 +1,36 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import moment from 'jalali-moment';
+
+// Update jalali-moment locale for better relative time formatting
+moment.updateLocale('fa', {
+  relativeTime: {
+    future: '%s بعد',
+    past: '%s پیش',
+    s: 'چند ثانیه',
+    m: 'یک دقیقه',
+    mm: '%d دقیقه',
+    h: 'یک ساعت',
+    hh: '%d ساعت',
+    d: 'یک روز',
+    dd: '%d روز',
+    M: 'یک ماه',
+    MM: '%d ماه',
+    y: 'یک سال',
+    yy: '%d سال'
+  }
+});
+
+
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
