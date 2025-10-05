@@ -2,18 +2,18 @@
   "name": "همیار مشاور هوشمند",
   "short_name": "همیار مشاور",
   "description": "یک برنامه جامع برای مدیریت جلسات مشاوره مدرسه با قابلیت‌های هوشمند.",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#f1f5f9",
   "theme_color": "#0ea5e9",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "./icon-192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/icon-512.png",
+      "src": "./icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }

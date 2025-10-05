@@ -1,17 +1,17 @@
 // Define a cache name for your app.
 // IMPORTANT: Change this name whenever you update your app's files
 // to ensure users get the latest version.
-const CACHE_NAME = 'sca-v1.0.0';
+const CACHE_NAME = 'sca-v1.0.1';
 
 // List of essential files to cache for offline use.
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/index.tsx', // This will be fetched by the browser's module loader
-  '/fonts.css',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  './',
+  './index.html',
+  './index.tsx', // This will be fetched by the browser's module loader
+  './fonts.css',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // The install event is fired when the service worker is first installed.

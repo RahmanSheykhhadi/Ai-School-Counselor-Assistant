@@ -407,7 +407,7 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
 
   const handleReorderMoreMenu = async (reorderedMenu: View[]) => {
-      // FIX: Explicitly type the `prev` parameter as `AppSettings` to ensure it's treated as an object,
+      // FIX: Explicitly type the `prev` parameter as `AppSettings` to ensure it is treated as an object,
       // resolving the "Spread types may only be created from object types" error.
       await setAppSettingsHandler((prev: AppSettings) => ({ ...prev, moreMenuOrder: reorderedMenu }));
   };

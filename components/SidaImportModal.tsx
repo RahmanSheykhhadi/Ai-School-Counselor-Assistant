@@ -97,13 +97,10 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     updates.push({ studentId, photoUrl });
                     successCount++;
                 } catch (error) {
-                    // FIX: Safely handle the 'error' variable (which is of type 'unknown' in a catch block)
-                    // by checking if it's an instance of Error before accessing the .message property.
+                    // FIX: Safely handle the 'error' variable (which is of type 'unknown' in a catch block) by converting it to a string before using it in a template literal.
                     if (error instanceof Error) {
                         console.error(`Error processing file ${file.name}: ${error.message}`);
                     } else {
-                        // FIX: The `error` variable in a catch block is of type `unknown` and cannot be directly
-                        // used in a template literal. It must be converted to a string first.
                         console.error(`An unknown error occurred while processing ${file.name}: ${String(error)}`);
                     }
                     failCount++;
