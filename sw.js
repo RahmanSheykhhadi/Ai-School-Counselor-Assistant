@@ -1,77 +1,51 @@
-// Define a cache name for your app.
-// IMPORTANT: Change this name whenever you update your app's files
-// to ensure users get the latest version.
-const CACHE_NAME = 'sca-v1.0.2';
-
-// List of essential files to cache for offline use.
-const urlsToCache = [
-  './',
-  './index.html',
-  './index.js', // Cache the compiled JavaScript file
-  './fonts.css',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+const CACHE_NAME = 'counselor-app-cache-v1';
+const URLS_TO_CACHE = [
+    '/',
+    '/index.html',
+    '/fonts.css'
 ];
 
-// The install event is fired when the service worker is first installed.
+// Install the service worker and cache core assets
 self.addEventListener('install', event => {
-  console.log('Service Worker: Installing...');
-  // waitUntil() ensures that the service worker will not install until the code inside it has successfully completed.
-  event.waitUntil(
-    // Open the cache.
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Service Worker: Caching app shell');
-        // Add all the assets in urlsToCache to the cache.
-        return cache.addAll(urlsToCache);
-      })
-      .then(() => {
-        console.log('Service Worker: Installation complete.');
-        // Activate the new service worker immediately.
-        return self.skipWaiting();
-      })
-  );
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => {
+                console.log('Opened cache');
+                return cache.addAll(URLS_TO_CACHE);
+            })
+    );
+    self.skipWaiting();
 });
 
-// The activate event is fired after the installation is complete.
-// It's a good place to clean up old caches.
+// Activate the service worker and clean up old caches
 self.addEventListener('activate', event => {
-  console.log('Service Worker: Activating...');
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          // If a cache's name is not our current CACHE_NAME, delete it.
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+    const cacheWhitelist = [CACHE_NAME];
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cacheName => {
+                    if (cacheWhitelist.indexOf(cacheName) === -1) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
         })
-      );
-    }).then(() => {
-        console.log('Service Worker: Activation complete.');
-        // Take control of all pages under this service worker's scope immediately.
-        return self.clients.claim();
-    })
-  );
+    );
+    return self.clients.claim();
 });
 
-
-// The fetch event is fired for every network request made by the page.
-// This allows us to intercept requests and respond with cached assets.
+// Serve cached content when offline, otherwise fetch from network (cache-first for cached assets)
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    // Try to find a match for the request in the cache.
-    caches.match(event.request)
-      .then(response => {
-        // If a response is found in the cache, return it.
-        if (response) {
-          return response;
-        }
-        // If the request is not in the cache, fetch it from the network.
-        return fetch(event.request);
-      }
-    )
-  );
+    event.respondWith(
+        caches.match(event.request)
+            .then(response => {
+                // Cache hit - return response
+                if (response) {
+                    return response;
+                }
+                // Not in cache - fetch from network
+                return fetch(event.request);
+            }
+        )
+    );
 });

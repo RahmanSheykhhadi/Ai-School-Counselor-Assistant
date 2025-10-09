@@ -22,8 +22,14 @@ const BackupProgressModal: React.FC<BackupProgressModalProps> = ({ onBackup, onC
             onClose();
         }, 2000); 
 
-      } catch (error: any) {
-        alert(error.message);
+      } catch (error: unknown) {
+        let errorMessage = 'An unknown error occurred during backup.';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        } else {
+            errorMessage = String(error);
+        }
+        alert(errorMessage);
         onClose();
       }
     };

@@ -4,7 +4,7 @@ import type { Student, CounselingNeededInfo } from '../types';
 import Modal from './Modal';
 import ProfilePhoto from './ProfilePhoto';
 import { toPersianDigits, verifyPassword, normalizePersianChars } from '../utils/helpers';
-import { EditIcon, LockClosedIcon, TrashIcon, SearchIcon, ClipboardDocumentListIcon } from './icons';
+import { EditIcon, LockClosedIcon, TrashIcon, SearchIcon, ClipboardDocumentListIcon, ChevronDownIcon } from './icons';
 import ConfirmationModal from './ConfirmationModal';
 
 const EditCounselingInfoModal: React.FC<{
@@ -123,6 +123,7 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isUnlocking, setIsUnlocking] = useState(false);
+    const [expandedStudents, setExpandedStudents] = useState<Record<string, boolean>>({});
 
     const counselingNeededData = useMemo(() => {
         return counselingNeededStudents
@@ -179,6 +180,13 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
             setDeletingStudentInfo(null);
         }
     };
+
+    const toggleExpanded = (studentId: string) => {
+        setExpandedStudents(prev => ({
+            ...prev,
+            [studentId]: !prev[studentId],
+        }));
+    };
     
     const counselingNeededMap = useMemo(() => new Map(counselingNeededStudents.map(s => [s.studentId, s])), [counselingNeededStudents]);
 
@@ -230,6 +238,7 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {counselingNeededData.map(({ student, info }) => {
                         const classroom = classrooms.find(c => c.id === student.classroomId);
+                        const isExpanded = !!expandedStudents[student.id];
                         return (
                             <div key={student.id} className="bg-white rounded-xl shadow-sm p-4">
                                 <div className="flex justify-between items-start mb-3">
@@ -237,7 +246,7 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
                                          <ProfilePhoto photoUrl={student.photoUrl} alt={`${student.firstName} ${student.lastName}`} className="w-10 h-10 rounded-full flex-shrink-0" />
                                         <div>
                                             <p className="font-bold text-slate-800">
-                                                {student.firstName} {student.lastName} {student.grade && `(${toPersianDigits(student.grade)})`}
+                                                {student.firstName} {student.lastName}
                                             </p>
                                             <p className="text-sm text-slate-500">{classroom?.name || 'کلاس نامشخص'}</p>
                                         </div>
@@ -252,7 +261,13 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
                                     </div>
                                 </div>
                                 <div className="pt-3 border-t border-slate-100">
-                                    <p className="text-sm text-slate-500 bg-slate-50 p-2 rounded-md whitespace-pre-wrap">{info.notes}</p>
+                                    <button onClick={() => toggleExpanded(student.id)} className="flex items-center text-sm text-sky-600 font-semibold mb-2 py-1">
+                                        <span>{isExpanded ? 'بستن توضیحات' : 'نمایش توضیحات'}</span>
+                                        <ChevronDownIcon className={`w-4 h-4 mr-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {isExpanded && (
+                                        <p className="text-sm text-slate-500 bg-slate-50 p-2 rounded-md whitespace-pre-wrap text-justify">{info.notes}</p>
+                                    )}
                                 </div>
                             </div>
                         );

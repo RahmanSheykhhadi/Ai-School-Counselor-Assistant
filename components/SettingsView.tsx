@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import JSZip from 'jszip';
 import moment from 'jalali-moment';
@@ -8,7 +6,7 @@ import type { AppSettings, WorkingDays, BackupData, SessionType, View, Counselin
 import { hashPassword, verifyPassword } from '../utils/helpers';
 import SidaImportModal from './SidaImportModal';
 import BackupProgressModal from './BackupProgressModal';
-import RestoreProgressModal from './RestoreProgressModal';
+import { RestoreProgressModal } from './RestoreProgressModal';
 import ConfirmationModal from './ConfirmationModal';
 import { toPersianDigits, normalizePersianChars } from '../utils/helpers';
 import { createClient } from '@supabase/supabase-js';
@@ -272,9 +270,7 @@ const SettingsView: React.FC = () => {
 
     const handleAppSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        const fieldsToNormalize = ['counselorName'];
-        const normalizedValue = fieldsToNormalize.includes(name) ? normalizePersianChars(value) : value;
-        setLocalAppSettings(prev => ({ ...prev, [name]: normalizedValue }));
+        setLocalAppSettings(prev => ({ ...prev, [name]: value }));
     };
 
     const handleWorkingDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,12 +279,12 @@ const SettingsView: React.FC = () => {
     };
 
     const handleSaveGeneral = async () => {
-        await setAppSettings(prev => ({...prev, academicYear: localAppSettings.academicYear, counselorName: localAppSettings.counselorName}));
+        await setAppSettings((prev) => ({...prev, academicYear: localAppSettings.academicYear}));
         showToast('تنظیمات عمومی با موفقیت ذخیره شد.');
     };
 
     const handleSaveAppearance = async () => {
-        await setAppSettings(prev => ({...prev, fontSize: localAppSettings.fontSize}));
+        await setAppSettings((prev) => ({...prev, fontSize: localAppSettings.fontSize}));
         showToast('تنظیمات ظاهری با موفقیت ذخیره شد.');
     };
     
@@ -381,7 +377,7 @@ const SettingsView: React.FC = () => {
         
         // Hash and save the new password
         const passwordHash = await hashPassword(newPassword);
-        await setAppSettings(prev => ({...prev, passwordProtectionEnabled: true, sessionPasswordHash: passwordHash}));
+        await setAppSettings((prev) => ({...prev, passwordProtectionEnabled: true, sessionPasswordHash: passwordHash}));
         setSecurityMessage({type: 'success', text: 'رمز عبور با موفقیت تنظیم/تغییر یافت.'});
         setCurrentPassword('');
         setNewPassword('');
@@ -399,7 +395,7 @@ const SettingsView: React.FC = () => {
             return;
         }
     
-        await setAppSettings(prev => ({...prev, passwordProtectionEnabled: false, sessionPasswordHash: null}));
+        await setAppSettings((prev) => ({...prev, passwordProtectionEnabled: false, sessionPasswordHash: null}));
         setSecurityMessage({type: 'success', text: 'رمز عبور با موفقیت حذف شد.'});
         setCurrentPassword('');
         setNewPassword('');
@@ -420,7 +416,7 @@ const SettingsView: React.FC = () => {
     };
 
     const handleConfirmResetPassword = async () => {
-        await setAppSettings(prev => ({...prev, passwordProtectionEnabled: false, sessionPasswordHash: null}));
+        await setAppSettings((prev) => ({...prev, passwordProtectionEnabled: false, sessionPasswordHash: null}));
         setSecurityMessage({type: 'success', text: 'رمز عبور با موفقیت ریست شد.'});
         setCurrentPassword('');
         setNewPassword('');
@@ -439,10 +435,13 @@ const SettingsView: React.FC = () => {
             students: allData.students,
             sessions: allData.sessions,
             sessionTypes: sessionTypes,
+            studentGroups: allData.studentGroups,
             workingDays: workingDays,
             appSettings: appSettings,
             specialStudents: allData.specialStudents,
             counselingNeededStudents: allData.counselingNeededStudents,
+            thinkingObservations: allData.thinkingObservations,
+            thinkingEvaluations: allData.thinkingEvaluations,
         };
         zip.file("backup.json", JSON.stringify(backupData, null, 2));
 
@@ -464,8 +463,8 @@ const SettingsView: React.FC = () => {
         
         onProgress({ progress: 95, message: 'آماده‌سازی برای دانلود...' });
         const link = document.createElement("a");
-        const date = new Date().toLocaleDateString('fa-IR-u-nu-latn').replace(/\//g, '-');
-        link.download = `counselor-app-backup-${date}.zip`;
+        const date = moment().locale('fa').format('YYYY-MM-DD');
+        link.download = `SCA-BK-(${date}).zip`;
         link.href = URL.createObjectURL(content);
         link.click();
         URL.revokeObjectURL(link.href);
@@ -531,7 +530,7 @@ const SettingsView: React.FC = () => {
                     {activeTab === 'general' && (
                         <div className="space-y-4">
                             <h2 className="text-xl font-bold text-slate-800 mb-4">تنظیمات عمومی</h2>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div className="grid grid-cols-1 gap-4">
                                  <div>
                                     <label htmlFor="academicYear" className="block text-sm font-medium text-slate-700 mb-1">سال تحصیلی فعال</label>
                                     <select name="academicYear" id="academicYear" value={localAppSettings.academicYear} onChange={handleAppSettingsChange} className="w-full p-2 border border-slate-300 rounded-md bg-white">
@@ -539,10 +538,6 @@ const SettingsView: React.FC = () => {
                                             <option key={year} value={year}>{toPersianDigits(year)}</option>
                                         ))}
                                     </select>
-                                </div>
-                                <div>
-                                    <label htmlFor="counselorName" className="block text-sm font-medium text-slate-700 mb-1">نام مشاور</label>
-                                    <input type="text" name="counselorName" value={localAppSettings.counselorName} onChange={handleAppSettingsChange} className="w-full p-2 border border-slate-300 rounded-md" />
                                 </div>
                             </div>
                             
@@ -728,38 +723,34 @@ const SettingsView: React.FC = () => {
                     {activeTab === 'data' && (
                         <div className="space-y-4">
                             <h2 className="text-xl font-bold text-slate-800 mb-4">مدیریت داده‌ها</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <div className="p-4 border rounded-lg flex flex-col transition-shadow hover:shadow-md">
-                                    <h3 className="font-semibold mb-2">دریافت عکس از سیدا</h3>
-                                    <p className="text-sm text-slate-500 mb-4 flex-grow">دریافت گروهی عکس پروفایل دانش‌آموزان از سامانه سیدا.</p>
-                                    <button type="button" onClick={() => setIsSidaModalOpen(true)} className="w-full px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600">
-                                        شروع
-                                    </button>
-                                </div>
-                                <div className="p-4 border rounded-lg flex flex-col transition-shadow hover:shadow-md">
-                                    <h3 className="font-semibold mb-2">پشتیبان‌گیری</h3>
-                                    <p className="text-sm text-slate-500 mb-4 flex-grow">از تمام اطلاعات برنامه (شامل عکس‌ها) یک فایل فشرده تهیه کنید.</p>
-                                    <button type="button" onClick={() => setIsBackupModalOpen(true)} className="w-full px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="p-3 border rounded-lg flex flex-col transition-shadow hover:shadow-md text-center">
+                                    <h3 className="font-semibold mb-3 flex-grow">پشتیبان‌گیری</h3>
+                                    <button type="button" onClick={() => setIsBackupModalOpen(true)} className="w-full mt-auto px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 text-sm">
                                         تهیه پشتیبان
                                     </button>
                                 </div>
-                                <div className="p-4 border rounded-lg flex flex-col transition-shadow hover:shadow-md">
-                                    <h3 className="font-semibold mb-2">بازیابی پشتیبان</h3>
-                                    <p className="text-sm text-slate-500 mb-4 flex-grow">اطلاعات را از یک فایل پشتیبان بازگردانی کنید.</p>
+                                <div className="p-3 border rounded-lg flex flex-col transition-shadow hover:shadow-md text-center">
+                                    <h3 className="font-semibold mb-3 flex-grow">بازیابی پشتیبان</h3>
                                     <input type="file" ref={restoreInputRef} onChange={handleRestoreChange} accept=".zip" className="hidden"/>
-                                    <button type="button" onClick={() => restoreInputRef.current?.click()} className="w-full px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600">
-                                        انتخاب فایل
+                                    <button type="button" onClick={() => restoreInputRef.current?.click()} className="w-full mt-auto px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 text-sm">
+                                        انتخاب پشتیبان
+                                    </button>
+                                </div>
+                                <div className="p-3 border rounded-lg flex flex-col transition-shadow hover:shadow-md text-center">
+                                    <h3 className="font-semibold mb-3 flex-grow">دریافت عکس از سیدا</h3>
+                                    <button type="button" onClick={() => setIsSidaModalOpen(true)} className="w-full mt-auto px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm">
+                                        شروع
+                                    </button>
+                                </div>
+                                 <div className="p-3 border border-red-200 bg-red-50 rounded-lg flex flex-col transition-shadow hover:shadow-md text-center">
+                                    <h3 className="font-semibold mb-3 flex-grow text-red-800">حذف داده‌ها</h3>
+                                    <button type="button" onClick={() => setShowFactoryResetConfirm(true)} className="w-full mt-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm">
+                                        شروع حذف
                                     </button>
                                 </div>
                             </div>
                             <SupabaseSettings />
-                             <div className="p-4 border border-red-200 bg-red-50 rounded-lg flex flex-col transition-shadow hover:shadow-md">
-                                <h3 className="font-semibold mb-2 text-red-800">حذف تمامی داده‌ها</h3>
-                                <p className="text-sm text-red-700 mb-4 flex-grow">&nbsp;</p>
-                                <button type="button" onClick={() => setShowFactoryResetConfirm(true)} className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                                    شروع حذف
-                                </button>
-                            </div>
                         </div>
                     )}
                 </div>
@@ -811,9 +802,9 @@ const SettingsView: React.FC = () => {
             )}
             {showFactoryResetConfirm && (
                  <ConfirmationModal
-                    title="حذف تمامی داده‌ها"
+                    title="حذف داده‌ها"
                     message={<p><strong>هشدار!</strong> این عمل تمام اطلاعات شامل کلاس‌ها، دانش‌آموزان، و جلسات را برای همیشه حذف خواهد کرد. این عمل غیرقابل بازگشت است. آیا مطمئن هستید؟</p>}
-                    onConfirm={handleConfirmFactoryReset}
+                    onConfirm={handleFactoryReset}
                     onCancel={() => setShowFactoryResetConfirm(false)}
                     confirmButtonText="بله، همه چیز را پاک کن"
                     confirmButtonVariant="danger"

@@ -5,25 +5,25 @@ interface GradeNineQuorumViewProps {
     onBack: () => void;
 }
 
-const fieldsOfStudy: { [key: string]: string[] } = {
-    'علوم تجربی': ['ریاضی', 'علوم تجربی'],
-    'ریاضی فیزیک': ['ریاضی', 'علوم تجربی'],
-    'علوم انسانی': ['فارسی', 'مطالعات اجتماعی', 'عربی'],
-    'علوم معارف': ['فارسی', 'پیام‌های آسمان', 'عربی'],
-    'فنی‌حرفه‌ای (صنعت)': ['ریاضی', 'کار و فناوری'],
-    'فنی‌حرفه‌ای (خدمات)': ['کار و فناوری', 'فرهنگ و هنر'],
-    'فنی‌حرفه‌ای (هنر)': ['کار و فناوری', 'فرهنگ و هنر'],
-};
-
-type Grades = {
-    [subject: string]: {
-        '7': string;
-        '8': string;
-        '9': string;
+const QuorumCalculator: React.FC = () => {
+    const fieldsOfStudy: { [key: string]: string[] } = {
+        'علوم تجربی': ['ریاضی', 'علوم تجربی'],
+        'ریاضی فیزیک': ['ریاضی', 'علوم تجربی'],
+        'علوم انسانی': ['فارسی', 'مطالعات اجتماعی', 'عربی'],
+        'علوم معارف': ['فارسی', 'پیام‌های آسمان', 'عربی'],
+        'فنی‌حرفه‌ای (صنعت)': ['ریاضی', 'کار و فناوری'],
+        'فنی‌حرفه‌ای (خدمات)': ['کار و فناوری', 'فرهنگ و هنر'],
+        'فنی‌حرفه‌ای (هنر)': ['کار و فناوری', 'فرهنگ و هنر'],
     };
-};
 
-const GradeNineQuorumView: React.FC<GradeNineQuorumViewProps> = ({ onBack }) => {
+    type Grades = {
+        [subject: string]: {
+            '7': string;
+            '8': string;
+            '9': string;
+        };
+    };
+
     const [selectedField, setSelectedField] = useState<string>('');
     const [grades, setGrades] = useState<Grades>({});
 
@@ -79,15 +79,9 @@ const GradeNineQuorumView: React.FC<GradeNineQuorumViewProps> = ({ onBack }) => 
     };
 
     const subjects = selectedField ? fieldsOfStudy[selectedField] : [];
-
+    
     return (
         <div className="space-y-6">
-            <div>
-                <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به بیشتر</button>
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">ابزار محاسبه حد نصاب نهم</h1>
-                <p className="text-slate-500 mt-1">نمرات سه سال دانش‌آموز را وارد کنید تا نمره نهایی هر درس بر اساس فرمول انتخاب رشته محاسبه شود.</p>
-            </div>
-
             <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm transition-shadow hover:shadow-md">
                 <div className="max-w-md">
                     <label htmlFor="field-select" className="block text-sm font-medium text-slate-700 mb-1">انتخاب رشته تحصیلی:</label>
@@ -144,6 +138,21 @@ const GradeNineQuorumView: React.FC<GradeNineQuorumViewProps> = ({ onBack }) => 
                     </div>
                 </div>
             )}
+        </div>
+    );
+};
+
+const GradeNineQuorumView: React.FC<GradeNineQuorumViewProps> = ({ onBack }) => {
+    return (
+        <div className="space-y-6">
+            <div>
+                <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به بیشتر</button>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">محاسبه حد نصاب نهم</h1>
+                <p className="text-slate-500 mt-1">ابزار محاسبه نمره نهایی دروس برای هدایت تحصیلی پایه نهم.</p>
+            </div>
+            
+            <QuorumCalculator />
+
         </div>
     );
 };

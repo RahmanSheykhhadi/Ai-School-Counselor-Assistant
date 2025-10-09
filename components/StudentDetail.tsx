@@ -45,7 +45,6 @@ export default function StudentDetail({ studentId, onBack }: StudentDetailProps)
     setTimeout(() => setToastMessage(null), 2000);
   };
 
-  // Mobile number interaction logic
   const handleMobileInteractionStart = () => {
     isLongPress.current = false;
     longPressTimer.current = window.setTimeout(() => {
@@ -70,7 +69,6 @@ export default function StudentDetail({ studentId, onBack }: StudentDetailProps)
   };
 
 
-  // Photo management logic
   const handlePhotoLongPressStart = () => {
     longPressTimer.current = window.setTimeout(() => {
       setIsPhotoMenuOpen(true);
@@ -166,7 +164,7 @@ export default function StudentDetail({ studentId, onBack }: StudentDetailProps)
   const handleConfirmDeleteStudent = () => {
     handleDeleteStudent(student.id);
     setIsDeleteConfirmOpen(false);
-    onBack(); // Go back after deleting
+    onBack();
   };
 
   const handleSaveStudent = (updatedStudent: Student) => {
@@ -221,7 +219,9 @@ export default function StudentDetail({ studentId, onBack }: StudentDetailProps)
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">{`${student.firstName} ${student.lastName}`}</h1>
-              <p className="text-slate-500 mt-1">{classroom?.name || 'کلاس نامشخص'}</p>
+              <p className="text-slate-500 mt-1">
+                {classroom ? `کلاس: ${classroom.name}` : 'بدون کلاس'}
+              </p>
             </div>
           </div>
            <div className="flex items-center gap-2 self-center flex-shrink-0 flex-wrap">
@@ -246,8 +246,8 @@ export default function StudentDetail({ studentId, onBack }: StudentDetailProps)
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm text-slate-800">
             <InfoItem label="نام پدر" value={student.fatherName} />
             <InfoItem label="کد ملی" value={student.nationalId} />
+            <InfoItem label="کلاس" value={classroom?.name} />
             <InfoItem label="تاریخ تولد" value={student.birthDate} />
-            <InfoItem label="پایه تحصیلی" value={student.grade} />
             <InfoItem label="ملیت" value={student.nationality} />
             <div>
               <span className="font-semibold text-slate-600">موبایل:</span>{' '}

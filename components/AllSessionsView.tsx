@@ -83,12 +83,14 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
     
     useEffect(() => {
         const firstMonthKey = sessionsByMonth.keys().next().value;
+        // FIX: Add an explicit type check for firstMonthKey to ensure it's a string before using it as a computed property name.
         if (typeof firstMonthKey === 'string' && !searchTerm) {
              setExpandedMonths({ [firstMonthKey]: true });
         } else if (searchTerm) {
             const allMonthKeys = Array.from(sessionsByMonth.keys());
             const allExpanded: Record<string, boolean> = {};
             for (const key of allMonthKeys) {
+                // FIX: Explicitly type check 'key' to resolve "Type 'unknown' cannot be used as an index type" error.
                 if (typeof key === 'string') {
                     allExpanded[key] = true;
                 }
@@ -113,7 +115,7 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
         }
     };
 
-    const handleSaveAndClose = (sessionData: Session | Omit<Session, 'id'>) => {
+    const handleSaveAndClose = (sessionData: Session | Omit<Session, 'id' | 'academicYear'>) => {
         handleSaveSession(sessionData);
         setSessionToEdit(null);
     };

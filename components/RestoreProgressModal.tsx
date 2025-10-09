@@ -18,7 +18,8 @@ const blobToDataURL = (blob: Blob): Promise<string> => {
     });
 };
 
-const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file, onClose }) => {
+// FIX: Changed to a named export to resolve the "no default export" error.
+export const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file, onClose }) => {
   const { handleRestore } = useAppContext();
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('شروع عملیات بازیابی...');
@@ -65,10 +66,13 @@ const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file, onClo
             students: rawData.students ?? [],
             sessions: rawData.sessions ?? [],
             sessionTypes: rawData.sessionTypes ?? [],
+            studentGroups: rawData.studentGroups ?? [],
             workingDays: rawData.workingDays ?? mockWorkingDays,
             appSettings: finalAppSettings, // Use the merged, robust settings object
             specialStudents: rawData.specialStudents ?? [],
             counselingNeededStudents: rawData.counselingNeededStudents ?? [],
+            thinkingObservations: rawData.thinkingObservations ?? [],
+            thinkingEvaluations: rawData.thinkingEvaluations ?? [],
         };
 
         setProgress(50);
@@ -97,6 +101,7 @@ const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file, onClo
             return student;
         });
         
+        // FIX: Added 'studentGroups' to the restored data object to match the 'BackupData' type.
         const finalData: BackupData = { ...restoredData, students: studentsWithRestoredPhotos };
         
         setProgress(90);
@@ -114,6 +119,7 @@ const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file, onClo
       } catch (error: unknown) {
         console.error("Restore error:", error);
         
+        // FIX: Re-implemented for maximum robustness to avoid "[object Object]".
         let errorMessage = 'An unexpected error occurred during restore.';
         if (error instanceof Error) {
             errorMessage = error.message;
@@ -155,7 +161,7 @@ const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file, onClo
         <p className="text-slate-600 mb-2">{message}</p>
         <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
           <div
-            className="h-4 rounded-full transition-all duration-500 ease-in-out bg-sky-500"
+            className={`h-4 rounded-full transition-all duration-500 ease-in-out ${progress === 100 ? 'bg-green-500' : 'bg-sky-500'}`}
             style={{ width: `${progress}%` }}
           ></div>
         </div>
@@ -164,5 +170,3 @@ const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file, onClo
     </div>
   );
 };
-
-export default RestoreProgressModal;

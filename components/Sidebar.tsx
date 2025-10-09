@@ -1,6 +1,6 @@
 import React from 'react';
 import type { View } from '../types';
-import { HomeIcon, ClassroomIcon, CalendarIcon, Squares2X2Icon, GeminiLogo } from './icons';
+import { HomeIcon, UsersIcon, CalendarIcon, Squares2X2Icon, GeminiLogo } from './icons';
 import { useAppContext } from '../context/AppContext';
 import { toPersianDigits } from '../utils/helpers';
 
@@ -11,7 +11,7 @@ interface SidebarProps {
 
 const navItems: { view: View; label: string; icon: React.FC<React.SVGProps<SVGSVGElement>> }[] = [
   { view: 'dashboard', label: 'داشبورد', icon: HomeIcon },
-  { view: 'classrooms', label: 'کلاس‌ها', icon: ClassroomIcon },
+  { view: 'students', label: 'دانش‌آموزان', icon: UsersIcon },
   { view: 'calendar', label: 'تقویم', icon: CalendarIcon },
   { view: 'more', label: 'بیشتر', icon: Squares2X2Icon },
 ];
@@ -20,8 +20,17 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
   const { appSettings } = useAppContext();
   
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => {
-    const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students'].includes(currentView);
-    const isActive = item.view === 'more' ? isMoreSectionActive : currentView === item.view;
+    const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students', 'thinking-lifestyle'].includes(currentView);
+    const isStudentsSectionActive = ['students', 'student-detail', 'manual-assign', 'classroom-manager'].includes(currentView);
+    
+    let isActive = false;
+    if (item.view === 'more') {
+        isActive = isMoreSectionActive;
+    } else if (item.view === 'students') {
+        isActive = isStudentsSectionActive;
+    } else {
+        isActive = currentView === item.view;
+    }
     
     return (
       <button
@@ -50,14 +59,20 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
         <div className="flex flex-col items-center mb-8">
             <GeminiLogo className="w-12 h-12 text-sky-600" />
              <h1 className="text-xl font-bold text-slate-800 mt-4">همیار مشاور هوشمند</h1>
-             {appSettings.counselorName && (
-                <p className="text-sm font-bold text-slate-500 mt-1">مشاور: {appSettings.counselorName}</p>
-             )}
         </div>
         <nav className="flex flex-col space-y-2">
           {navItems.map(item => {
-            const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students'].includes(currentView);
-            const isActive = item.view === 'more' ? isMoreSectionActive : currentView === item.view;
+            const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students', 'thinking-lifestyle'].includes(currentView);
+            const isStudentsSectionActive = ['students', 'student-detail', 'manual-assign', 'classroom-manager'].includes(currentView);
+            
+            let isActive = false;
+            if (item.view === 'more') {
+                isActive = isMoreSectionActive;
+            } else if (item.view === 'students') {
+                isActive = isStudentsSectionActive;
+            } else {
+                isActive = currentView === item.view;
+            }
             
             return (
               <button

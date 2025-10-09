@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>دستیار هوشمند مشاور</title>
   
-  <link rel="stylesheet" href="./fonts.css">
-  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="/fonts.css">
+  <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0ea5e9">
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -125,7 +125,7 @@
       "react/": "https://esm.sh/react@18.2.0/",
       "@google/genai": "https://esm.sh/@google/genai@1.20.0",
       "idb": "https://esm.sh/idb@8.0.0",
-      "@supabase/supabase-js": "https://esm.sh/dist/supabase.js",
+      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.44.4",
       "jalali-moment": "https://esm.sh/jalali-moment",
       "jszip": "https://esm.sh/jszip@3.10.1",
       "xlsx": "https://esm.sh/xlsx@0.18.5"
@@ -137,18 +137,6 @@
 </head>
 <body class="font-sans">
   <div id="root"></div>
-  <script type="module" src="./index.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then(registration => {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, err => {
-          console.log('ServiceWorker registration failed: ', err);
-        });
-      });
-    }
-  </script>
-<script type="module" src="/index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@ interface SessionCardProps {
 }
 
 const SessionCard: React.FC<SessionCardProps> = ({ session, student, onEdit, onDelete }) => {
-    const { sessionTypes, appSettings, isArchiveUnlocked } = useAppContext();
+    const { sessionTypes, appSettings, isArchiveUnlocked, classrooms } = useAppContext();
     const [isExpanded, setIsExpanded] = useState(false);
     const sessionType = sessionTypes.find(st => st.id === session.typeId);
     const sessionDate = new Date(session.date);
@@ -27,6 +27,8 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, student, onEdit, onD
     
     const isPastSession = new Date(session.date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0);
     const isProtectedAndLocked = appSettings.passwordProtectionEnabled && isPastSession && !isArchiveUnlocked;
+
+    const classroom = student ? classrooms.find(c => c.id === student.classroomId) : null;
 
     return (
         <div className={`bg-white p-4 rounded-lg shadow-sm border border-slate-200 transition-all ${isProtectedAndLocked ? 'bg-slate-50 opacity-70' : ''}`}>
@@ -44,7 +46,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, student, onEdit, onD
                                 <div>
                                     {student && (
                                         <p className="font-bold text-base text-slate-800">
-                                            {student.firstName} {student.lastName} {student.grade && `(${toPersianDigits(student.grade)})`}
+                                            {student.firstName} {student.lastName} {classroom && <span className="text-sm font-normal text-slate-500">({classroom.name})</span>}
                                         </p>
                                     )}
                                     <p className="text-sm text-slate-600 mt-1">{toPersianDigits(formattedDate)}</p>

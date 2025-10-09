@@ -52,7 +52,7 @@ const UpcomingSessionsView: React.FC<UpcomingSessionsViewProps> = ({ onBack, onN
                             {student && <ProfilePhoto photoUrl={student.photoUrl} alt={student.firstName} className="w-10 h-10 rounded-full" />}
                             <div>
                                 <p className="font-semibold text-slate-800">{student ? `${student.firstName} ${student.lastName}` : 'دانش‌آموز حذف شده'}</p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-[13px] text-slate-500">
                                     {classroom ? `${classroom.name} • ` : ''}{sessionType?.name || 'جلسه'}
                                 </p>
                             </div>

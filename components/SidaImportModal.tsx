@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { useAppContext } from '../context/AppContext';
 import { toPersianDigits } from '../utils/helpers';
 import { FolderIcon } from './icons';
+import type { AppSettings } from '../types';
 
 // Helper function to read a file as a Base64 string
 const fileToDataURL = (file: File): Promise<string> => {
@@ -39,7 +40,8 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const handleGenerateLinks = () => {
         // Save the updated base URL
         if (baseUrl !== appSettings.sidaBaseUrl) {
-            setAppSettings(prev => ({ ...prev, sidaBaseUrl: baseUrl }));
+            // FIX: Explicitly type `prev` to avoid spread operator errors.
+            setAppSettings((prev: AppSettings) => ({ ...prev, sidaBaseUrl: baseUrl }));
         }
 
         const studentsToUpdate = students.filter(s => s.nationalId && (!s.photoUrl || s.photoUrl.trim() === ''));
@@ -60,14 +62,10 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const files = event.target.files;
         if (!files || files.length === 0) return;
 
-        // FIX: Replaced .filter() with a type-safe for-loop to handle FileList correctly.
-        // This resolves issues where `file.name` was accessed on an `unknown` type.
-        const imageFiles: File[] = [];
-        for (const file of Array.from(files)) {
-            if (file instanceof File && /\.(jpe?g|png|gif|webp)$/i.test(file.name)) {
-                imageFiles.push(file);
-            }
-        }
+        // FIX: Explicitly type `imageFiles` as `File[]` to ensure correct type inference from `FileList`.
+        const imageFiles: File[] = Array.from(files).filter(file => 
+            /\.(jpe?g|png|gif|webp)$/i.test(file.name)
+        );
 
         if (imageFiles.length === 0) {
             alert('هیچ فایل عکس معتبری (jpg, png, gif, webp) در پوشه انتخاب شده یافت نشد.');
@@ -101,7 +99,9 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     updates.push({ studentId, photoUrl });
                     successCount++;
                 } catch (error) {
-                    // FIX: Added a type guard to safely handle the `unknown` error type from the catch block.
+                    // FIX: The `error` variable in a catch block is of type 'unknown'. Added a type guard
+                    // to safely access `.message` and an explicit string conversion for the fallback case,
+                    // resolving the "Type 'unknown' is not assignable to type 'string'" error.
                     if (error instanceof Error) {
                         console.error(`Error processing file ${file.name}: ${error.message}`);
                     } else {

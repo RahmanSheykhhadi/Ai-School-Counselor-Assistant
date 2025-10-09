@@ -3,8 +3,7 @@ import { AppContextProvider, useAppContext } from './context/AppContext';
 import type { View } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
-import ClassroomList from './components/ClassroomList';
-import StudentList from './components/StudentList';
+import AllStudentsView from './components/AllStudentsView';
 import StudentDetail from './components/StudentDetail';
 import CalendarView from './components/CalendarView';
 import ReportsView from './components/ReportsView';
@@ -15,19 +14,18 @@ import GradeNineQuorumView from './components/GradeNineQuorumView';
 import UpcomingSessionsView from './components/UpcomingSessionsView';
 import SpecialStudentsView from './components/SpecialStudentsView';
 import CounselingNeededStudentsView from './components/CounselingNeededStudentsView';
+import ManualAssignView from './components/ManualAssignView';
+import { ThinkingLifestyleView } from './components/ThinkingLifestyleView';
+import ClassroomManagerView from './components/ClassroomManagerView';
 import { GeminiLogo } from './components/icons';
 
 function AppContent() {
-  const { students, classrooms, appSettings, setIsArchiveUnlocked, isLoading } = useAppContext();
+  const { students, appSettings, setIsArchiveUnlocked, isLoading } = useAppContext();
   const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Apply font size from settings
     const root = document.documentElement;
-    
-    // Handle font size
     const sizeValue = parseInt(appSettings.fontSize, 10);
     if (!isNaN(sizeValue) && sizeValue > 0) {
         root.style.fontSize = `${sizeValue}px`;
@@ -37,69 +35,27 @@ function AppContent() {
     }
   }, [appSettings.fontSize]);
 
-  // Effect to handle view validation and automatic navigation
   useEffect(() => {
-    // Do not run validation logic until all data is loaded to prevent race conditions.
-    if (isLoading) {
-      return;
-    }
+    if (isLoading) return;
 
-    // --- Student Detail View Validation ---
-    if (currentView === 'student-detail') {
-      const student = selectedStudentId ? students.find(s => s.id === selectedStudentId) : undefined;
-      
-      // If student doesn't exist, we must navigate away. This is a critical failure state.
-      if (!student) {
-        const classroom = selectedClassroomId ? classrooms.find(c => c.id === selectedClassroomId) : undefined;
-        if (classroom) {
-          setCurrentView('student-list');
-          setSelectedStudentId(null);
-        } else {
-          setCurrentView('classrooms');
-          setSelectedClassroomId(null);
-          setSelectedStudentId(null);
-        }
-        return; // Stop processing after correcting the state.
-      }
-      
-      // If student exists, but classroomId is out of sync, correct it.
-      if (student.classroomId !== selectedClassroomId) {
-        setSelectedClassroomId(student.classroomId);
-        return; // Stop processing.
-      }
-    }
-
-    // --- Student List View Validation ---
-    if (currentView === 'student-list') {
-      const classroom = selectedClassroomId ? classrooms.find(c => c.id === selectedClassroomId) : undefined;
-      
-      // If classroom doesn't exist, navigate to the top level.
-      if (!classroom) {
-        setCurrentView('classrooms');
-        setSelectedClassroomId(null);
+    if (currentView === 'student-detail' && selectedStudentId) {
+      const studentExists = students.some(s => s.id === selectedStudentId);
+      if (!studentExists) {
+        setCurrentView('students');
         setSelectedStudentId(null);
-        return; // Stop processing.
       }
     }
-  }, [currentView, selectedClassroomId, selectedStudentId, students, classrooms, isLoading]);
+  }, [currentView, selectedStudentId, students, isLoading]);
 
 
   const navigate = (view: View) => {
-    // Reset selections on main navigation
-    if (['dashboard', 'classrooms', 'calendar', 'more'].includes(view)) {
-      setSelectedClassroomId(null);
+    if (['dashboard', 'students', 'calendar', 'more'].includes(view)) {
       setSelectedStudentId(null);
     }
-    // Automatically lock archive when navigating away from protected views
     if(['all-sessions', 'student-detail', 'special-students', 'counseling-needed-students'].includes(currentView)) {
         setIsArchiveUnlocked(false);
     }
     setCurrentView(view);
-  };
-  
-  const viewClassroom = (id: string) => {
-      setSelectedClassroomId(id);
-      navigate('student-list');
   };
   
   const viewStudent = (id: string) => {
@@ -107,19 +63,12 @@ function AppContent() {
       navigate('student-detail');
   };
   
-  const backToClassrooms = () => {
-      setSelectedClassroomId(null);
+  const backToStudents = () => {
       setSelectedStudentId(null);
-      navigate('classrooms');
-  }
-  
-  const backToStudentList = () => {
-      setSelectedStudentId(null);
-      navigate('student-list');
+      navigate('students');
   }
   
    const backToDashboard = () => {
-      setSelectedClassroomId(null);
       setSelectedStudentId(null);
       navigate('dashboard');
   }
@@ -131,21 +80,12 @@ function AppContent() {
   const renderCurrentView = () => {
       switch (currentView) {
           case 'dashboard':
-              return <Dashboard onNavigate={navigate} onViewClassroom={viewClassroom} />;
-          case 'classrooms':
-              return <ClassroomList onViewClass={viewClassroom} />;
-          case 'student-list': {
-              const classroom = classrooms.find(c => c.id === selectedClassroomId);
-              // This guard prevents rendering with invalid data for the brief moment before the useEffect corrects the view state.
-              if (!classroom) return null;
-              
-              const classroomStudents = students.filter(s => s.classroomId === selectedClassroomId);
-              return <StudentList classroom={classroom} students={classroomStudents} onSelectStudent={viewStudent} onBack={backToClassrooms} />;
-            }
+              return <Dashboard onNavigate={navigate} />;
+          case 'students':
+              return <AllStudentsView onViewStudent={viewStudent} onNavigate={navigate} />;
           case 'student-detail': {
-              // This guard is also important for the frame before the effect runs.
               if (!selectedStudentId) return null;
-              return <StudentDetail studentId={selectedStudentId} onBack={backToStudentList} onNavigate={navigate} />;
+              return <StudentDetail studentId={selectedStudentId} onBack={backToStudents} onNavigate={navigate} />;
             }
           case 'calendar':
               return <CalendarView />;
@@ -161,12 +101,18 @@ function AppContent() {
               return <MoreView onNavigate={navigate} />;
           case 'grade-nine-quorum':
               return <GradeNineQuorumView onBack={backToMore} />;
+          case 'thinking-lifestyle':
+              return <ThinkingLifestyleView onBack={backToMore} />;
           case 'special-students':
               return <SpecialStudentsView onBack={backToMore} />;
           case 'counseling-needed-students':
               return <CounselingNeededStudentsView onBack={backToMore} />;
+          case 'manual-assign':
+              return <ManualAssignView onBack={backToStudents} />;
+          case 'classroom-manager':
+              return <ClassroomManagerView onBack={backToStudents} />;
           default:
-              return <Dashboard onNavigate={navigate} onViewClassroom={viewClassroom} />;
+              return <Dashboard onNavigate={navigate} />;
       }
   };
   

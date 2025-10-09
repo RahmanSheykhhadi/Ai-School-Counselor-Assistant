@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect, PropsWithChildren } from 'react';
-import type { Classroom, Student, Session, SessionType, WorkingDays, AppSettings, BackupData, AppContextType, View, SpecialStudentInfo, CounselingNeededInfo } from '../types';
+import type { Classroom, Student, Session, SessionType, StudentGroup, WorkingDays, AppSettings, BackupData, AppContextType, View, SpecialStudentInfo, CounselingNeededInfo, ThinkingObservation, ThinkingEvaluation } from '../types';
 import * as db from '../services/db';
 import { mockClassrooms, mockStudents, mockSessions, mockSessionTypes, mockWorkingDays, mockAppSettings } from '../data/mockData';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
@@ -8,7 +8,6 @@ import { normalizePersianChars, toPersianDigits } from '../utils/helpers';
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const getErrorMessage = (error: unknown): string => {
-    // This new implementation is more robust and handles nested error objects.
     if (typeof error !== 'object' || error === null) {
         const str = String(error);
         return str === '[object Object]' ? 'An unknown error occurred.' : str;
@@ -46,10 +45,13 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionTypes, setSessionTypes] = useState<SessionType[]>([]);
+  const [studentGroups, setStudentGroups] = useState<StudentGroup[]>([]);
   const [workingDays, setWorkingDays] = useState<WorkingDays>(mockWorkingDays);
   const [appSettings, setAppSettings] = useState<AppSettings>(mockAppSettings);
   const [specialStudents, setSpecialStudents] = useState<SpecialStudentInfo[]>([]);
   const [counselingNeededStudents, setCounselingNeededStudents] = useState<CounselingNeededInfo[]>([]);
+  const [thinkingObservations, setThinkingObservations] = useState<ThinkingObservation[]>([]);
+  const [thinkingEvaluations, setThinkingEvaluations] = useState<ThinkingEvaluation[]>([]);
   
   const [calendarTargetDate, setCalendarTargetDate] = useState<Date | null>(null);
   const [isArchiveUnlocked, setIsArchiveUnlocked] = useState(false);
@@ -63,7 +65,7 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
 
   const seedInitialData = async () => {
     // This function will contain the logic to populate DB with mock data.
-    await db.addClassrooms(mockClassrooms);
+    // In the new schema, we don't seed classrooms as they are user-defined.
     await db.putStudents(mockStudents);
     await db.addSessions(mockSessions);
     await db.addSessionTypes(mockSessionTypes);
@@ -71,24 +73,20 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
     await db.putSetting('appSettings', mockAppSettings);
   };
 
-  // Initial data load from IndexedDB
   useEffect(() => {
     const initializeApp = async () => {
       try {
         setIsLoading(true);
-
-        const dbAppSettings = await db.getSetting('appSettings');
         
-        const classroomsCount = await db.getCount('classrooms');
-        if (classroomsCount === 0) {
+        const studentsCount = await db.getCount('students');
+        if (studentsCount === 0) {
           await seedInitialData();
         }
         
-        await loadDataFromDb(dbAppSettings?.academicYear);
+        await loadDataFromDb();
 
       } catch (error) {
         console.error("Failed to initialize the application:", error);
-        // In a real app, you might want to set an error state here to show a message to the user.
       } finally {
         setIsLoading(false);
       }
@@ -97,7 +95,6 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
     initializeApp();
   }, []);
 
-  // Reactive effect to initialize/update Supabase client when settings change
   useEffect(() => {
     const { supabaseUrl, supabaseAnonKey } = appSettings;
     if (supabaseUrl && supabaseAnonKey) {
@@ -129,50 +126,37 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
       const settings = await db.getSetting('appSettings');
       const academicYear = academicYearToLoad || settings?.academicYear || mockAppSettings.academicYear;
 
-      const [
-          loadedClassrooms,
-          loadedStudents,
-          loadedSessions,
-          loadedSessionTypes,
-          loadedWorkingDays,
-          loadedAppSettings,
-          loadedSpecialStudents,
-          loadedCounselingNeededStudents,
-          loadedLastSyncTime
-      ] = await Promise.all([
-          db.getAllFromIndex('classrooms', 'academicYear', academicYear),
-          db.getAllFromIndex('students', 'academicYear', academicYear),
-          db.getAllFromIndex('sessions', 'academicYear', academicYear),
-          db.getAll('sessionTypes'),
-          db.getSetting('workingDays'),
-          db.getSetting('appSettings'),
-          db.getAll('specialStudents'), // Note: this is not filtered by academic year
-          db.getAll('counselingNeededStudents'),
-          db.getSetting('lastSyncTime'),
-      ]);
+      const data = await db.loadInitialData(academicYear);
 
-      setClassrooms(loadedClassrooms.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-      setStudents(loadedStudents);
-      setSessions(loadedSessions);
-      setSessionTypes(loadedSessionTypes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-      setWorkingDays(loadedWorkingDays || mockWorkingDays);
-      setAppSettings(loadedAppSettings || mockAppSettings);
-      setSpecialStudents(loadedSpecialStudents);
-      setCounselingNeededStudents(loadedCounselingNeededStudents);
-      setLastSyncTime(loadedLastSyncTime ? new Date(loadedLastSyncTime) : null);
+      setClassrooms(data.classrooms.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+      setStudents(data.students);
+      setSessions(data.sessions);
+      setSessionTypes(data.sessionTypes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+      setStudentGroups(data.studentGroups || []);
+      setWorkingDays(data.workingDays || mockWorkingDays);
+      setAppSettings(data.appSettings || mockAppSettings);
+      setSpecialStudents(data.specialStudents || []);
+      setCounselingNeededStudents(data.counselingNeededStudents || []);
+      setThinkingObservations(data.thinkingObservations || []);
+      setThinkingEvaluations(data.thinkingEvaluations || []);
+      setLastSyncTime(data.lastSyncTime ? new Date(data.lastSyncTime) : null);
   };
 
   const setAppSettingsHandler = async (updaterOrValue: AppSettings | ((prev: AppSettings) => AppSettings)) => {
-    let newSettings: AppSettings;
-    if (typeof updaterOrValue === 'function') {
-      newSettings = updaterOrValue(appSettings);
-    } else {
-      newSettings = updaterOrValue;
-    }
-    await db.putSetting('appSettings', newSettings);
-    setAppSettings(newSettings);
+    // FIX: Use a promise with the functional update form of `setAppSettings` to get the latest state,
+    // prevent race conditions, and ensure type safety.
+    const oldAcademicYear = appSettings.academicYear;
+    const newSettings = await new Promise<AppSettings>(resolve => {
+        setAppSettings(current => {
+            const updated = typeof updaterOrValue === 'function' ? updaterOrValue(current) : updaterOrValue;
+            resolve(updated);
+            return updated;
+        });
+    });
 
-    if(newSettings.academicYear !== appSettings.academicYear){
+    await db.putSetting('appSettings', newSettings);
+
+    if (newSettings.academicYear !== oldAcademicYear) {
         setIsLoading(true);
         await loadDataFromDb(newSettings.academicYear);
         setIsLoading(false);
@@ -180,9 +164,16 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
 
   const setWorkingDaysHandler = async (updaterOrValue: WorkingDays | ((prev: WorkingDays) => WorkingDays)) => {
-    const newDays = typeof updaterOrValue === 'function' ? updaterOrValue(workingDays) : updaterOrValue;
+    // FIX: Use a promise with the functional update form of `setWorkingDays` to get the latest state
+    // and ensure type safety, preventing spread operator errors.
+    const newDays = await new Promise<WorkingDays>(resolve => {
+        setWorkingDays(current => {
+            const updated = typeof updaterOrValue === 'function' ? updaterOrValue(current) : updaterOrValue;
+            resolve(updated);
+            return updated;
+        });
+    });
     await db.putSetting('workingDays', newDays);
-    setWorkingDays(newDays);
   };
   
   const handleAddClassroom = async (name: string) => {
@@ -196,12 +187,12 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
 
   const handleDeleteClassroom = async (id: string) => {
-    await db.deleteClassroom(id);
+    await db.deleteJustClassroom(id);
     await loadDataFromDb();
   };
   
-  const handleAddStudent = async (student: Omit<Student, 'id' | 'photoUrl' | 'classroomId' | 'academicYear'>, classroomId: string) => {
-    const newStudent = await db.addStudent({ ...student, classroomId, photoUrl: '', academicYear: appSettings.academicYear });
+  const handleAddStudent = async (student: Omit<Student, 'id' | 'photoUrl' | 'academicYear'>) => {
+    const newStudent = await db.addStudent({ ...student, photoUrl: '', academicYear: appSettings.academicYear });
     setStudents(prev => [...prev, newStudent]);
   };
   
@@ -217,14 +208,14 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
     setSpecialStudents(prev => prev.filter(s => s.studentId !== studentId));
   };
 
-  const handleAddStudentsBatch = async (studentsData: Omit<Student, 'id' | 'photoUrl' | 'classroomId' | 'academicYear'>[], classroomId: string) => {
+  const handleAddStudentsBatch = async (studentsData: Omit<Student, 'id'| 'photoUrl' | 'classroomId' | 'academicYear'>[]) => {
       const existingNationalIds = new Set(students.map(s => s.nationalId).filter(Boolean));
       const newStudentsData = studentsData.filter(s => s.nationalId && !existingNationalIds.has(s.nationalId));
 
       if (newStudentsData.length > 0) {
         const studentsToAdd = newStudentsData.map(s => ({
             ...s,
-            classroomId,
+            classroomId: '', // Classroom is not assigned on batch import
             photoUrl: '',
             academicYear: appSettings.academicYear,
         }));
@@ -235,15 +226,11 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
   
   const handleSaveSession = async (session: Session | Omit<Session, 'id' | 'academicYear'>) => {
-      // FIX: Spread types may only be created from object types.
-      // By checking for 'id' in the session object first, we narrow the union type,
-      // allowing TypeScript to correctly infer the type before the spread operator is used.
-      if ('id' in session) {
-          const sessionData = { ...session, academicYear: appSettings.academicYear };
+      const sessionData = { ...session, academicYear: appSettings.academicYear };
+      if ('id' in sessionData) {
           await db.putSession(sessionData);
           setSessions(prev => prev.map(s => s.id === sessionData.id ? sessionData : s));
       } else {
-          const sessionData = { ...session, academicYear: appSettings.academicYear };
           const newSession = await db.addSession(sessionData);
           setSessions(prev => [...prev, newSession]);
       }
@@ -274,6 +261,16 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
       setSessionTypes(prev => prev.filter(st => st.id !== id));
   };
 
+  const handleSaveGroup = async (group: Omit<StudentGroup, 'id'>) => {
+      const newGroup = await db.addStudentGroup(group);
+      setStudentGroups(prev => [...prev, newGroup]);
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+      await db.deleteStudentGroup(groupId);
+      setStudentGroups(prev => prev.filter(g => g.id !== groupId));
+  };
+
   const handleUpdateSpecialStudentInfo = async (info: SpecialStudentInfo) => {
       await db.putSpecialStudentInfo(info);
       setSpecialStudents(prev => {
@@ -296,30 +293,71 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
       });
   };
 
+  const handleUpdateThinkingObservation = async (observation: ThinkingObservation) => {
+    await db.putThinkingObservation(observation);
+    setThinkingObservations(prev => {
+        const existing = prev.find(s => s.studentId === observation.studentId);
+        if (existing) {
+            return prev.map(s => s.studentId === observation.studentId ? observation : s);
+        }
+        return [...prev, observation];
+    });
+  };
+
+  const handleUpdateThinkingEvaluation = async (evaluation: ThinkingEvaluation) => {
+      await db.putThinkingEvaluation(evaluation);
+      setThinkingEvaluations(prev => {
+          const existing = prev.find(s => s.studentId === evaluation.studentId);
+          if (existing) {
+              return prev.map(s => s.studentId === evaluation.studentId ? evaluation : s);
+          }
+          return [...prev, evaluation];
+      });
+  };
+
   const handleRestore = async (data: BackupData, fromSync = false) => {
     setIsLoading(true);
     
-    // The academic year from the backup file is the single source of truth for this restore.
-    const targetAcademicYear = data.appSettings?.academicYear || mockAppSettings.academicYear;
-    
-    // Create a new appSettings object to ensure consistency and include defaults.
-    const restoredAppSettings = { ...mockAppSettings, ...(data.appSettings || {}), academicYear: targetAcademicYear };
+    let studentsToRestore = (data.students || []).map(s => {
+        const { grade, ...rest } = s as any; // Remove grade property if it exists
+        return rest;
+    });
 
-    // Before writing to the database, explicitly stamp each record with the target academic year.
-    // This makes the process resilient to older backup formats that may be missing this field.
-    const classroomsWithYear = (data.classrooms || []).map(c => ({ ...c, academicYear: targetAcademicYear }));
-    const studentsWithYear = (data.students || []).map(s => ({ ...s, academicYear: targetAcademicYear }));
+    // --- ROBUST DATA MIGRATION FIX ---
+    // If the backup has students but NO classrooms, it's an old backup.
+    // Force all students to have no class, ensuring they appear in "Manual Assign".
+    // This prevents the "grade" from being incorrectly interpreted as a "class".
+    if (studentsToRestore.length > 0 && (!data.classrooms || data.classrooms.length === 0)) {
+        studentsToRestore = studentsToRestore.map(student => ({
+            ...student,
+            classroomId: '' // Explicitly clear the classroom ID.
+        }));
+    }
+    // --- END OF FIX ---
+
+    const sanitizedClassrooms = (data.classrooms || []).map(c => {
+        const { grade, ...rest } = c as any; // Remove grade if it exists
+        return rest;
+    });
+
+    const targetAcademicYear = data.appSettings?.academicYear || mockAppSettings.academicYear;
+    const restoredAppSettings = { ...mockAppSettings, ...(data.appSettings || {}), academicYear: targetAcademicYear };
+    
+    const classroomsWithYear = sanitizedClassrooms.map(c => ({ ...c, academicYear: targetAcademicYear }));
+    const studentsWithYear = studentsToRestore.map(s => ({ ...s, academicYear: targetAcademicYear }));
     const sessionsWithYear = (data.sessions || []).map(s => ({ ...s, academicYear: targetAcademicYear }));
 
     await db.clearAllData();
     
-    // Now write the sanitized data.
     await db.putClassrooms(classroomsWithYear);
     await db.putStudents(studentsWithYear);
     await db.putSessions(sessionsWithYear);
     await db.putSessionTypes(data.sessionTypes || []);
+    await db.putStudentGroups(data.studentGroups || []);
     await db.putSpecialStudents(data.specialStudents || []);
     await db.putCounselingNeededStudents(data.counselingNeededStudents || []);
+    await db.putThinkingObservations(data.thinkingObservations || []);
+    await db.putThinkingEvaluations(data.thinkingEvaluations || []);
     await db.putSetting('workingDays', data.workingDays || mockWorkingDays);
     await db.putSetting('appSettings', restoredAppSettings);
 
@@ -328,7 +366,6 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
         await db.putSetting('lastSyncTime', syncTime.toISOString());
     }
     
-    // Now load data using the same academic year, ensuring we see what we just wrote.
     await loadDataFromDb(targetAcademicYear);
     setIsLoading(false);
   };
@@ -347,6 +384,49 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
               return updated || s;
           }));
       }
+  };
+
+  const handleBatchUpdateStudentClassrooms = async (updates: { studentId: string; classroomId: string }[]) => {
+      const studentMap = new Map(students.map(s => [s.id, s]));
+      const studentsToUpdate = updates.map(update => {
+          const student = studentMap.get(update.studentId);
+          return student ? { ...student, classroomId: update.classroomId } : null;
+      }).filter((s): s is Student => s !== null);
+
+      if (studentsToUpdate.length > 0) {
+          await db.putStudents(studentsToUpdate);
+          setStudents(prev => prev.map(s => {
+              const updated = studentsToUpdate.find(u => u.id === s.id);
+              return updated || s;
+          }));
+      }
+  };
+
+  const handleBatchUpdateStudentDetails = async (updates: { studentId: string; data: { classroomId?: string } }[]) => {
+      const studentMap = new Map(students.map(s => [s.id, s]));
+      const studentsToUpdate = updates.map(update => {
+          const student = studentMap.get(update.studentId);
+          return student ? { ...student, ...update.data } : null;
+      }).filter((s): s is Student => s !== null);
+
+      if (studentsToUpdate.length > 0) {
+          await db.putStudents(studentsToUpdate);
+          setStudents(prev => prev.map(s => {
+              const updated = studentsToUpdate.find(u => u.id === s.id);
+              return updated || s;
+          }));
+      }
+  };
+
+  const handleBatchCreateClassrooms = async (classroomsToCreate: { name: string }[]): Promise<Classroom[]> => {
+    const newClassrooms = classroomsToCreate.map((c, index) => ({
+      ...c,
+      academicYear: appSettings.academicYear,
+      order: classrooms.length + index
+    }));
+    const createdClassrooms = await db.addMultipleClassrooms(newClassrooms);
+    setClassrooms(prev => [...prev, ...createdClassrooms]);
+    return createdClassrooms;
   };
   
   const handleNormalizeChars = async () => {
@@ -410,6 +490,7 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
 
   const handleReorderMoreMenu = async (reorderedMenu: View[]) => {
+      // FIX: Explicitly type `prev` to avoid spread operator type error when using functional updates.
       await setAppSettingsHandler((prev: AppSettings) => ({ ...prev, moreMenuOrder: reorderedMenu }));
   };
 
@@ -424,57 +505,43 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   // Supabase functions
     const supabaseLogin = async (email: string, password: string) => {
         if (!supabase) return { error: { message: "Supabase connection is not active." } };
-
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-
         if (signInError && (signInError.message.includes('Invalid login credentials') || signInError.message.includes('User not found'))) {
              const { error: signUpError } = await supabase.auth.signUp({ email, password });
              return { error: signUpError };
         }
         return { error: signInError };
     };
-
     const supabaseResendConfirmation = async (email: string) => {
         if (!supabase) return { error: { message: "Supabase connection is not active." } };
         const { error } = await supabase.auth.resend({ type: 'signup', email });
         return { error };
     };
-
     const supabaseLogout = async () => {
         if (supabase) {
             await supabase.auth.signOut();
         }
     };
-
     const syncToCloud = async () => {
         if (!supabase || !supabaseUser) {
             setSyncStatus({ active: true, progress: 100, message: "خطا: لطفا ابتدا به حساب کاربری خود وارد شوید." });
             setTimeout(() => setSyncStatus({ active: false, progress: 0, message: '' }), 4000);
             return;
         }
-        
         setSyncStatus({ active: true, progress: 0, message: 'شروع همگام‌سازی...' });
-        
         try {
             await new Promise(res => setTimeout(res, 200));
             setSyncStatus(prev => ({ ...prev, progress: 10, message: "جمع‌آوری اطلاعات برنامه (شامل عکس‌ها)..."}));
-            
-            // Student photos are now included in the sync.
-            const backupData = { classrooms, students, sessions, sessionTypes, workingDays, appSettings, specialStudents, counselingNeededStudents };
-            
+            const backupData = { classrooms, students, sessions, sessionTypes, studentGroups, workingDays, appSettings, specialStudents, counselingNeededStudents, thinkingObservations, thinkingEvaluations };
             setSyncStatus(prev => ({ ...prev, progress: 50, message: "در حال ارسال به فضای ابری..."}));
             const { error } = await supabase.from('profiles').update({ app_data: backupData }).eq('id', supabaseUser.id);
-            
             if (error) throw error;
-            
             setSyncStatus(prev => ({ ...prev, progress: 90, message: "ذخیره زمان همگام‌سازی..."}));
             const syncTime = new Date();
             await db.putSetting('lastSyncTime', syncTime.toISOString());
             setLastSyncTime(syncTime);
-            
             setSyncStatus({ active: true, progress: 100, message: "همگام‌سازی با موفقیت انجام شد."});
             setTimeout(() => setSyncStatus({ active: false, progress: 0, message: '' }), 2000);
-
         } catch (error: unknown) {
             console.error("Sync to cloud error:", error);
             const errorMessage = getErrorMessage(error);
@@ -482,7 +549,6 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
             setTimeout(() => setSyncStatus({ active: false, progress: 0, message: '' }), 5000);
         }
     };
-    
     const syncFromCloud = async () => {
         if (!supabase || !supabaseUser) {
             alert("لطفا ابتدا به حساب کاربری خود وارد شوید.");
@@ -517,10 +583,13 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
     students,
     sessions,
     sessionTypes,
+    studentGroups,
     workingDays,
     appSettings,
     specialStudents,
     counselingNeededStudents,
+    thinkingObservations,
+    thinkingEvaluations,
     setAppSettings: setAppSettingsHandler,
     setWorkingDays: setWorkingDaysHandler,
     handleAddClassroom,
@@ -535,10 +604,17 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
     handleAddSessionType,
     handleUpdateSessionType,
     handleDeleteSessionType,
+    handleSaveGroup,
+    handleDeleteGroup,
     handleUpdateSpecialStudentInfo,
     handleUpdateCounselingNeededInfo,
+    handleUpdateThinkingObservation,
+    handleUpdateThinkingEvaluation,
     handleRestore,
     handleBatchUpdateStudentPhotos,
+    handleBatchUpdateStudentClassrooms,
+    handleBatchUpdateStudentDetails,
+    handleBatchCreateClassrooms,
     handleNormalizeChars,
     handlePrependZero,
     handleReorderClassrooms,

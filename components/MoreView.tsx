@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { View } from '../types';
-import { ChartBarIcon, CogIcon, CalculatorIcon, Bars2Icon, StarIcon, ClipboardDocumentListIcon } from './icons';
+import { ChartBarIcon, CogIcon, CalculatorIcon, Bars2Icon, StarIcon, ClipboardDocumentListIcon, UsersIcon, QuestionMarkCircleIcon } from './icons';
 import { useAppContext } from '../context/AppContext';
 
 interface MoreViewProps {
@@ -10,22 +10,24 @@ interface MoreViewProps {
 const allItems: { [key in View]?: { icon: React.FC<any>, title: string } } = {
     'special-students': { icon: StarIcon, title: 'دانش‌آموزان خاص' },
     'counseling-needed-students': { icon: ClipboardDocumentListIcon, title: 'نیازمند مشاوره' },
+    'grade-nine-quorum': { icon: CalculatorIcon, title: 'حد نصاب نهم' },
+    'thinking-lifestyle': { icon: UsersIcon, title: 'تفکر و سبک زندگی' },
     'reports': { icon: ChartBarIcon, title: 'گزارشات' },
     'settings': { icon: CogIcon, title: 'تنظیمات' },
-    'grade-nine-quorum': { icon: CalculatorIcon, title: 'حد نصاب نهم' },
+    'help': { icon: QuestionMarkCircleIcon, title: 'راهنما' },
 };
 
 const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
   const { appSettings, handleReorderMoreMenu } = useAppContext();
-  const defaultOrder: View[] = ['special-students', 'counseling-needed-students', 'grade-nine-quorum', 'reports', 'settings'];
+  const defaultOrder: View[] = ['special-students', 'counseling-needed-students', 'thinking-lifestyle', 'grade-nine-quorum', 'reports', 'settings', 'help'];
   
   const getInitialOrder = () => {
       const savedOrder = appSettings.moreMenuOrder || defaultOrder;
       const validOrder = savedOrder.filter(view => allItems[view]);
       
-      const reportsAndSettings: View[] = ['reports', 'settings'];
-      const otherItems = validOrder.filter(item => !reportsAndSettings.includes(item));
-      const fixedItems = reportsAndSettings.filter(item => validOrder.includes(item));
+      const fixedViewItems: View[] = ['reports', 'settings', 'help'];
+      const otherItems = validOrder.filter(item => !fixedViewItems.includes(item));
+      const fixedItems = fixedViewItems.filter(item => validOrder.includes(item));
 
       return [...otherItems, ...fixedItems];
   };
@@ -44,7 +46,7 @@ const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
   
-  const draggableItemCount = orderedViews.filter(v => v !== 'reports' && v !== 'settings').length;
+  const draggableItemCount = orderedViews.filter(v => v !== 'reports' && v !== 'settings' && v !== 'help').length;
 
   const handleDragEnd = () => {
       if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
@@ -73,11 +75,35 @@ const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
       handleReorderMoreMenu(reorderedViews);
   };
 
+  const handleHelpClick = async () => {
+    try {
+        const response = await fetch('sca-help.html');
+        if (!response.ok) {
+            throw new Error(`Help file not found (status: ${response.status})`);
+        }
+        const htmlContent = await response.text();
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const helpWindow = window.open(url, '_blank');
+        
+        // Good practice for memory management: revoke the object URL after it's loaded.
+        if (helpWindow) {
+            helpWindow.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+        } else {
+            alert('مرورگر شما مانع از باز شدن پنجره راهنما شد. لطفا pop-up ها را برای این سایت فعال کنید.');
+            URL.revokeObjectURL(url); // Clean up even if blocked
+        }
+    } catch (error) {
+        console.error('Failed to open help file:', error);
+        alert('متاسفانه فایل راهنما یافت نشد. لطفا با پشتیبانی تماس بگیرید.');
+    }
+  };
+
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">بیشتر</h1>
-        <p className="text-slate-500 mt-1">برای تغییر چیدمان، آیتم‌ها را بکشید.</p>
       </div>
 
       <div className="flex flex-col gap-3 max-w-xl mx-auto">
@@ -98,7 +124,13 @@ const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
               className={`bg-white rounded-xl shadow-sm p-4 flex items-center justify-between transition-shadow hover:shadow-md group ${dragItem.current === index ? 'opacity-50 border-2 border-dashed border-sky-500' : ''}`}
             >
               <div 
-                onClick={() => onNavigate(view)} 
+                onClick={() => {
+                  if (view === 'help') {
+                    handleHelpClick();
+                  } else {
+                    onNavigate(view);
+                  }
+                }} 
                 className="flex items-center gap-4 flex-grow cursor-pointer"
               >
                 <item.icon className="w-8 h-8 text-slate-600" />

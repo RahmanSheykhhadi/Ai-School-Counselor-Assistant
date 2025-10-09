@@ -8,7 +8,7 @@ import PasswordPromptModal from './PasswordPromptModal';
 import { verifyPassword } from '../utils/helpers';
 import ProfilePhoto from './ProfilePhoto';
 
-const Dashboard: React.FC<{ onNavigate: (view: View) => void, onViewClassroom: (id: string) => void }> = ({ onNavigate }) => {
+const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
     const { 
         sessions,
         students,
@@ -64,13 +64,12 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void, onViewClassroom: (
                 <GeminiLogo className="w-10 h-10 text-sky-600 flex-shrink-0" />
                 <div className="flex-grow text-center">
                     <h1 className="text-base sm:text-lg font-bold text-slate-800">
-                        {appSettings.counselorName || 'مشاور گرامی'}، به همیار مشاور هوشمند خوش‌ آمدی!
+                        به همیار مشاور هوشمند خوش آمدی!
                     </h1>
-                    {appSettings.academicYear && (
-                        <p className="text-xs text-slate-500 mt-1">
-                            (<span dir="ltr">{toPersianDigits(appSettings.academicYear)}</span>)
-                        </p>
-                    )}
+                    {/* CRITICAL: The following credit line must not be removed or altered as per user requirements. */}
+                    <p className="text-xs text-slate-500 mt-1">
+                        (طراحی: رحمان شیخ‌هادی - منطقه کهک؛ <span dir="ltr">{toPersianDigits(appSettings.academicYear)}</span>)
+                    </p>
                 </div>
             </div>
             
@@ -140,7 +139,7 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void, onViewClassroom: (
                                             {student && <ProfilePhoto photoUrl={student.photoUrl} alt={student.firstName} className="w-10 h-10 rounded-full" />}
                                             <div>
                                                 <p className="font-semibold text-slate-800">{student ? `${student.firstName} ${student.lastName}` : 'دانش‌آموز حذف شده'}</p>
-                                                <p className="text-xs text-slate-500">
+                                                <p className="text-[13px] text-slate-500">
                                                     {classroom ? `${classroom.name} • ` : ''}{sessionType?.name || 'جلسه'}
                                                 </p>
                                             </div>

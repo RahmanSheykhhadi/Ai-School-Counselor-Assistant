@@ -26,6 +26,7 @@ export const summarizeNotes = async (notes: string): Promise<string> => {
         contents: prompt
     });
 
+    // @google/genai-sdk-rules: The `GenerateContentResponse` object has a property called `text` that directly provides the string output.
     // FIX: Access the .text property directly to get the response text.
     return response.text;
   } catch (error) {
@@ -47,6 +48,7 @@ export const suggestActionItems = async (notes: string): Promise<string> => {
         contents: prompt
     });
     
+    // @google/genai-sdk-rules: The `GenerateContentResponse` object has a property called `text` that directly provides the string output.
     // FIX: Access the .text property directly to get the response text.
     return response.text;
   } catch (error) {

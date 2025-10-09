@@ -4,7 +4,7 @@ import type { Student, SpecialStudentInfo } from '../types';
 import Modal from './Modal';
 import ProfilePhoto from './ProfilePhoto';
 import { toPersianDigits, verifyPassword, normalizePersianChars } from '../utils/helpers';
-import { EditIcon, StarIcon, LockClosedIcon, TrashIcon, SearchIcon, PrintIcon } from './icons';
+import { EditIcon, StarIcon, LockClosedIcon, TrashIcon, SearchIcon, PrintIcon, ChevronDownIcon } from './icons';
 import ConfirmationModal from './ConfirmationModal';
 
 // A map for checkbox labels and corresponding property names
@@ -160,6 +160,7 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isUnlocking, setIsUnlocking] = useState(false);
+    const [expandedStudents, setExpandedStudents] = useState<Record<string, boolean>>({});
 
     const specialStudentData = useMemo(() => {
         return specialStudents
@@ -217,32 +218,89 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         }
     };
     
+    const toggleExpanded = (studentId: string) => {
+        setExpandedStudents(prev => ({
+            ...prev,
+            [studentId]: !prev[studentId],
+        }));
+    };
+
     const specialStudentMap = useMemo(() => new Map(specialStudents.map(s => [s.studentId, s])), [specialStudents]);
 
     const handleExportHtml = () => {
         const classroomMap = new Map(classrooms.map(c => [c.id, c.name]));
+
+        const sanitizeHtml = (unsafe: string | undefined): string => {
+            if (!unsafe) return '';
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        };
+
+        const userIconSvg = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#6c757d" style="width: 48px; height: 48px;">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+        `;
+
         const content = specialStudentData.map(({ student, info }) => {
             const reasons = specialInfoMap
                 .filter(({ key }) => info[key])
-                .map(({ label }) => `<span class="reason-tag">${label}</span>`)
-                .join(' ');
+                .map(({ label }) => `
+                    <span style="background-color: #fff3cd; color: #856404; padding: 3px 8px; border-radius: 12px; font-size: 0.85em; margin: 2px; display: inline-block; white-space: nowrap;">
+                        ${sanitizeHtml(label)}
+                    </span>
+                `).join(' ');
 
-            const studentName = `${student.firstName} ${student.lastName} ${student.grade ? `(${toPersianDigits(student.grade)})` : ''}`.trim();
+            // FIX: Removed student.grade as it does not exist on Student type.
+            const studentName = sanitizeHtml(`${student.firstName} ${student.lastName}`.trim());
+            const classroomName = sanitizeHtml(classroomMap.get(student.classroomId) || 'کلاس نامشخص');
+            const notesContent = info.notes ? sanitizeHtml(info.notes).replace(/\n/g, '<br>') : '';
+            
+            const photoContent = student.photoUrl 
+                ? `<img src="${student.photoUrl}" alt="عکس دانش‌آموز" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ced4da; background-color: #f0f0f0;">`
+                : `<div style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid #ced4da; background-color: #e9ecef; display: flex; align-items: center; justify-content: center;">${userIconSvg}</div>`;
+
 
             return `
-                <div class="student-card">
-                    <img src="${student.photoUrl || ''}" alt="عکس دانش‌آموز" class="student-photo">
-                    <div class="student-info">
-                        <div class="student-header">
-                            <h2>${studentName}</h2>
-                            <p>${classroomMap.get(student.classroomId) || 'کلاس نامشخص'}</p>
-                        </div>
-                        <div class="reasons">
-                            <strong>موارد:</strong> ${reasons || '<em>موردی ثبت نشده</em>'}
-                        </div>
-                        ${info.notes ? `<div class="notes"><strong>توضیحات:</strong> ${info.notes.replace(/\n/g, '<br>')}</div>` : ''}
-                    </div>
-                </div>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 1em; page-break-inside: avoid; background-color: #ffffff;">
+                    <tbody>
+                        <tr>
+                            <td style="width: 90px; vertical-align: top; padding-right: 15px;">
+                                ${photoContent}
+                            </td>
+                            <td style="vertical-align: top;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="2" style="padding-bottom: 8px; border-bottom: 1px solid #eeeeee;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                    <h2 style="margin: 0; font-size: 1.2em; color: #343a40; font-weight: bold;">${studentName}</h2>
+                                                    <p style="margin: 0; font-size: 0.9em; color: #6c757d; white-space: nowrap;">${classroomName}</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2" style="padding-top: 8px; font-size: 0.9em;">
+                                                <strong style="color: #495057; margin-left: 4px;">موارد:</strong> ${reasons || '<em>موردی ثبت نشده</em>'}
+                                            </td>
+                                        </tr>
+                                        ${notesContent ? `
+                                        <tr>
+                                            <td colspan="2" style="padding-top: 8px; font-size: 0.9em; line-height: 1.6; text-align: justify;">
+                                                <strong style="color: #495057; margin-left: 4px;">توضیحات:</strong> ${notesContent}
+                                            </td>
+                                        </tr>
+                                        ` : ''}
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             `;
         }).join('');
 
@@ -257,69 +315,22 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                       font-family: 'B Yekan';
                       src: url('https://cdn.jsdelivr.net/gh/s-amir-p/F fonts/BYekan/BYekan+.woff2') format('woff2');
                       font-weight: normal;
-                      font-style: normal;
-                      font-display: swap;
                     }
                     @font-face {
                       font-family: 'B Yekan';
                       src: url('https://cdn.jsdelivr.net/gh/s-amir-p/F fonts/BYekan/BYekan+ Bold.woff2') format('woff2');
                       font-weight: bold;
-                      font-style: normal;
-                      font-display: swap;
                     }
-                    body { font-family: 'B Yekan', sans-serif; background-color: #f8f9fa; color: #333; }
+                    body { 
+                        font-family: 'B Yekan', Arial, sans-serif; 
+                        background-color: #ffffff; 
+                        color: #000000;
+                        font-size: 11pt;
+                        direction: rtl;
+                    }
                     @page { size: A4 portrait; margin: 1.5cm; }
                     .container { padding: 20px; }
-                    h1 { text-align: center; margin-bottom: 2rem; color: #0056b3; }
-                    .student-card {
-                        display: flex;
-                        align-items: flex-start;
-                        gap: 15px;
-                        background-color: #fff;
-                        border: 1px solid #dee2e6;
-                        border-radius: 8px;
-                        padding: 15px;
-                        margin-bottom: 1rem;
-                        page-break-inside: avoid;
-                    }
-                    .student-photo {
-                        width: 80px;
-                        height: 80px;
-                        border-radius: 50%;
-                        object-fit: cover;
-                        border: 2px solid #ced4da;
-                    }
-                    .student-info { flex-grow: 1; }
-                    .student-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        border-bottom: 1px solid #eee;
-                        padding-bottom: 8px;
-                        margin-bottom: 8px;
-                    }
-                    .student-header h2 { margin: 0; font-size: 1.2rem; color: #343a40; }
-                    .student-header p { margin: 0; font-size: 0.9rem; color: #6c757d; }
-                    .reasons { font-size: 0.9rem; margin-bottom: 8px; }
-                    .reasons strong { color: #495057; margin-left: 4px; }
-                    .notes {
-                        font-size: 0.9rem;
-                        line-height: 1.6;
-                        text-align: justify;
-                    }
-                    .notes strong {
-                        color: #495057;
-                        margin-left: 4px;
-                    }
-                    .reason-tag {
-                        background-color: #fff3cd;
-                        color: #856404;
-                        padding: 3px 8px;
-                        border-radius: 12px;
-                        font-size: 0.8rem;
-                        margin: 2px;
-                        display: inline-block;
-                    }
+                    h1 { text-align: center; margin-bottom: 2em; color: #0056b3; font-size: 1.5em; }
                     .footer {
                         position: fixed;
                         bottom: 0.5cm;
@@ -349,6 +360,7 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         link.click();
         URL.revokeObjectURL(link.href);
     };
+
 
     if (isProtectedAndLocked) {
         return (
@@ -380,16 +392,15 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap justify-between items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                  <div>
                     <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به بیشتر</button>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">دانش‌آموزان نیازمند توجه ویژه</h1>
-                    <p className="text-slate-500 mt-1">لیست دانش‌آموزانی که بر اساس اطلاعات ثبت شده نیازمند توجه ویژه هستند.</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 text-center sm:text-right">دانش‌آموزان نیازمند توجه ویژه</h1>
                 </div>
                 <button
                     onClick={handleExportHtml}
                     disabled={specialStudentData.length === 0}
-                    className="flex items-center bg-teal-500 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-teal-600 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center bg-teal-500 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-teal-600 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed self-center sm:self-auto"
                 >
                     <PrintIcon className="w-5 h-5" />
                     <span className="mr-2">دریافت خروجی HTML</span>
@@ -411,13 +422,14 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         const reasons = specialInfoMap
                             .filter(({ key }) => info[key])
                             .map(({ label }) => label);
+                        const isExpanded = !!expandedStudents[student.id];
 
                         return (
                             <div key={student.id} className="bg-white rounded-xl shadow-sm p-4">
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
                                         <p className="font-bold text-slate-800">
-                                            {student.firstName} {student.lastName} {student.grade && `(${toPersianDigits(student.grade)})`}
+                                            {student.firstName} {student.lastName}
                                         </p>
                                         <p className="text-sm text-slate-500">{classroom?.name || 'کلاس نامشخص'}</p>
                                     </div>
@@ -442,9 +454,17 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                             </div>
                                         </div>
                                         {info.notes && (
-                                            <div className="mt-2">
-                                                <p className="text-xs font-semibold text-slate-600 mb-1">توضیحات:</p>
-                                                <p className="text-xs text-slate-500 bg-slate-50 p-2 rounded-md whitespace-pre-wrap">{info.notes}</p>
+                                            <button onClick={() => toggleExpanded(student.id)} className="flex items-center text-xs text-sky-600 font-semibold mt-3 mb-2 py-1">
+                                                <span>{isExpanded ? 'بستن توضیحات' : 'نمایش توضیحات'}</span>
+                                                <ChevronDownIcon className={`w-4 h-4 mr-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                            </button>
+                                        )}
+                                        {isExpanded && info.notes && (
+                                            <div className="space-y-3 pt-2 border-t mt-2">
+                                                <div>
+                                                    <h4 className="font-semibold text-xs text-slate-600">توضیحات:</h4>
+                                                    <p className="text-xs text-slate-500 whitespace-pre-wrap mt-1 text-justify">{info.notes}</p>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
