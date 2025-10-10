@@ -3,7 +3,7 @@ import moment from 'jalali-moment';
 import { useAppContext } from '../context/AppContext';
 import type { View } from '../types';
 import { toPersianDigits } from '../utils/helpers';
-import { LockClosedIcon, LockOpenIcon, FolderIcon, GeminiLogo } from './icons';
+import { LockClosedIcon, LockOpenIcon, FolderIcon, AppLogoIcon } from './icons';
 import PasswordPromptModal from './PasswordPromptModal';
 import { verifyPassword } from '../utils/helpers';
 import ProfilePhoto from './ProfilePhoto';
@@ -60,17 +60,18 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate 
 
     return (
         <div className="space-y-6">
-            <div className="flex items-start gap-3">
-                <GeminiLogo className="w-10 h-10 text-sky-600 flex-shrink-0" />
-                <div className="flex-grow text-center">
+            <div className="text-center">
+                <div className="flex items-center justify-center gap-2 sm:gap-3">
+                    <AppLogoIcon className="w-8 h-8 sm:w-10 sm:h-10" />
                     <h1 className="text-base sm:text-lg font-bold text-slate-800">
                         به همیار مشاور هوشمند خوش آمدی!
                     </h1>
-                    {/* CRITICAL: The following credit line must not be removed or altered as per user requirements. */}
-                    <p className="text-xs text-slate-500 mt-1">
-                        (طراحی: رحمان شیخ‌هادی - منطقه کهک؛ <span dir="ltr">{toPersianDigits(appSettings.academicYear)}</span>)
-                    </p>
+                    <AppLogoIcon className="w-8 h-8 sm:w-10 sm:h-10" />
                 </div>
+                {/* CRITICAL: The following credit line must not be removed or altered as per user requirements. */}
+                <p className="text-sm text-slate-500 mt-1">
+                    (طراحی: رحمان شیخ‌هادی - منطقه کهک؛ <span dir="ltr">{toPersianDigits(appSettings.academicYear)}</span>)
+                </p>
             </div>
             
             <div 

@@ -18,7 +18,6 @@ const blobToDataURL = (blob: Blob): Promise<string> => {
     });
 };
 
-// FIX: Changed to a named export to resolve the "no default export" error.
 export const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file, onClose }) => {
   const { handleRestore } = useAppContext();
   const [progress, setProgress] = useState(0);

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { View } from '../types';
-import { HomeIcon, UsersIcon, CalendarIcon, Squares2X2Icon, GeminiLogo } from './icons';
+import { HomeIcon, UsersIcon, CalendarIcon, Squares2X2Icon, AppLogoIcon } from './icons';
 import { useAppContext } from '../context/AppContext';
 import { toPersianDigits } from '../utils/helpers';
 
@@ -57,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
       {/* Sidebar for desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-l border-slate-200 p-4" dir="rtl">
         <div className="flex flex-col items-center mb-8">
-            <GeminiLogo className="w-12 h-12 text-sky-600" />
+            <AppLogoIcon className="w-12 h-12" />
              <h1 className="text-xl font-bold text-slate-800 mt-4">همیار مشاور هوشمند</h1>
         </div>
         <nav className="flex flex-col space-y-2">

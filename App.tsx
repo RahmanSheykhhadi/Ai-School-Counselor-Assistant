@@ -17,7 +17,7 @@ import CounselingNeededStudentsView from './components/CounselingNeededStudentsV
 import ManualAssignView from './components/ManualAssignView';
 import { ThinkingLifestyleView } from './components/ThinkingLifestyleView';
 import ClassroomManagerView from './components/ClassroomManagerView';
-import { GeminiLogo } from './components/icons';
+import { AppLogoIcon } from './components/icons';
 
 function AppContent() {
   const { students, appSettings, setIsArchiveUnlocked, isLoading } = useAppContext();
@@ -119,7 +119,7 @@ function AppContent() {
   if (isLoading) {
     return (
         <div className="flex flex-col justify-center items-center h-screen bg-slate-100 text-slate-600">
-            <GeminiLogo className="w-20 h-20 text-sky-600 animate-pulse" />
+            <AppLogoIcon className="w-20 h-20 animate-pulse" />
             <p className="mt-4 text-lg font-semibold">در حال بارگذاری اطلاعات...</p>
         </div>
     );
