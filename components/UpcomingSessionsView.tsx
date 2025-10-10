@@ -4,6 +4,7 @@ import moment from 'jalali-moment';
 import type { View } from '../types';
 import { toPersianDigits } from '../utils/helpers';
 import ProfilePhoto from './ProfilePhoto';
+import { ArrowRightIcon } from './icons';
 
 interface UpcomingSessionsViewProps {
   onBack: () => void;
@@ -28,7 +29,9 @@ const UpcomingSessionsView: React.FC<UpcomingSessionsViewProps> = ({ onBack, onN
   return (
     <div className="space-y-6">
       <div>
-        <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به داشبورد</button>
+        <button onClick={onBack} title="بازگشت به داشبورد" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
+            <ArrowRightIcon className="w-6 h-6" />
+        </button>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">تمام جلسات پیش رو</h1>
       </div>
       

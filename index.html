@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>دستیار هوشمند مشاور</title>
   
-  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="icon" id="favicon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22></text></svg>" type="image/svg+xml">
 
   <link rel="stylesheet" href="/fonts.css">
-  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="manifest" id="manifest-link" href="/manifest.json">
   <meta name="theme-color" content="#0ea5e9">
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -22,6 +22,32 @@
         },
       },
     }
+  </script>
+  
+  <script>
+    // Pre-React icon and manifest loader script
+    (function() {
+      try {
+        const appIcon = localStorage.getItem('appIcon');
+        const timestamp = new Date().getTime();
+        const manifestLink = document.getElementById('manifest-link');
+        
+        if (manifestLink) {
+            // Bust cache on every load to ensure SW serves fresh manifest
+            manifestLink.href = `/manifest.json?v=${timestamp}`;
+        }
+        
+        // Only apply if appIcon is a valid-looking path or data URL
+        if (appIcon && (appIcon.startsWith('/') || appIcon.startsWith('data:'))) {
+          const favicon = document.getElementById('favicon');
+          if (favicon) {
+            favicon.href = appIcon;
+          }
+        }
+      } catch (e) {
+        console.error('Error loading pre-React assets:', e);
+      }
+    })();
   </script>
 
   <style>
@@ -128,7 +154,7 @@
       "@google/genai": "https://esm.sh/@google/genai@1.20.0",
       "idb": "https://esm.sh/idb@8.0.0",
       "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.44.4",
-      "jalali-moment": "https://esm.sh/jalali-moment",
+      "jalali-moment": "https://esm.sh/jalali-moment@3.3.11",
       "jszip": "https://esm.sh/jszip@3.10.1",
       "xlsx": "https://esm.sh/xlsx@0.18.5"
     }

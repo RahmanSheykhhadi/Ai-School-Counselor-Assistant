@@ -4,7 +4,7 @@ import type { Student, SpecialStudentInfo } from '../types';
 import Modal from './Modal';
 import ProfilePhoto from './ProfilePhoto';
 import { toPersianDigits, verifyPassword, normalizePersianChars } from '../utils/helpers';
-import { EditIcon, StarIcon, LockClosedIcon, TrashIcon, SearchIcon, PrintIcon, ChevronDownIcon } from './icons';
+import { EditIcon, StarIcon, LockClosedIcon, TrashIcon, SearchIcon, PrintIcon, ChevronDownIcon, SaveIcon, ArrowRightIcon } from './icons';
 import ConfirmationModal from './ConfirmationModal';
 
 // A map for checkbox labels and corresponding property names
@@ -79,7 +79,9 @@ const EditSpecialInfoModal: React.FC<{
                 </div>
                  <div className="flex justify-end space-x-reverse space-x-2 pt-4">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">انصراف</button>
-                    <button type="submit" className="px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600">ذخیره</button>
+                    <button type="submit" title="ذخیره" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
+                        <SaveIcon className="w-6 h-6" />
+                    </button>
                 </div>
             </form>
         </Modal>
@@ -249,13 +251,12 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         const content = specialStudentData.map(({ student, info }) => {
             const reasons = specialInfoMap
                 .filter(({ key }) => info[key])
-                .map(({ label }) => `
+                .map(({ label }: { label: string }) => `
                     <span style="background-color: #fff3cd; color: #856404; padding: 3px 8px; border-radius: 12px; font-size: 0.85em; margin: 2px; display: inline-block; white-space: nowrap;">
                         ${sanitizeHtml(label)}
                     </span>
                 `).join(' ');
 
-            // FIX: Removed student.grade as it does not exist on Student type.
             const studentName = sanitizeHtml(`${student.firstName} ${student.lastName}`.trim());
             const classroomName = sanitizeHtml(classroomMap.get(student.classroomId) || 'کلاس نامشخص');
             const notesContent = info.notes ? sanitizeHtml(info.notes).replace(/\n/g, '<br>') : '';
@@ -394,7 +395,9 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                  <div>
-                    <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به بیشتر</button>
+                    <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
+                        <ArrowRightIcon className="w-6 h-6" />
+                    </button>
                     <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 text-center sm:text-right">دانش‌آموزان نیازمند توجه ویژه</h1>
                 </div>
                 <button

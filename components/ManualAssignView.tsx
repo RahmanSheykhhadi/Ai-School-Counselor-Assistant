@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { toPersianDigits } from '../utils/helpers';
 import ProfilePhoto from './ProfilePhoto';
+import { SaveIcon, ArrowRightIcon } from './icons';
 
 interface ManualAssignViewProps {
   onBack: () => void;
@@ -40,7 +41,9 @@ const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) => {
     return (
         <div className="space-y-6">
             <div>
-                <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به لیست دانش‌آموزان</button>
+                <button onClick={onBack} title="بازگشت به لیست دانش‌آموزان" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
+                    <ArrowRightIcon className="w-6 h-6" />
+                </button>
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">کلاس‌بندی دستی</h1>
                 <p className="text-slate-500 mt-1">دانش‌آموزان بدون کلاس را به کلاس مربوطه اختصاص دهید.</p>
             </div>
@@ -75,9 +78,10 @@ const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) => {
                         <button
                             onClick={handleSaveChanges}
                             disabled={Object.keys(assignments).length === 0}
-                            className="px-6 py-2 bg-sky-500 text-white font-semibold rounded-lg shadow-sm hover:bg-sky-600 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
+                            title="ذخیره تغییرات"
+                            className="p-2 bg-sky-500 text-white font-semibold rounded-lg shadow-sm hover:bg-sky-600 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
                         >
-                            ذخیره تغییرات
+                            <SaveIcon className="w-6 h-6" />
                         </button>
                     </div>
                 </div>

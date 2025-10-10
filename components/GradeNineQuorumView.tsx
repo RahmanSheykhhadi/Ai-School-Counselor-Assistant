@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { toPersianDigits } from '../utils/helpers';
+import { ArrowRightIcon } from './icons';
 
 interface GradeNineQuorumViewProps {
     onBack: () => void;
@@ -145,8 +146,12 @@ const QuorumCalculator: React.FC = () => {
 const GradeNineQuorumView: React.FC<GradeNineQuorumViewProps> = ({ onBack }) => {
     return (
         <div className="space-y-6">
-            <div>
-                <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به بیشتر</button>
+            <div className="relative text-center">
+                <div className="absolute top-1/2 -translate-y-1/2 right-0">
+                    <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors">
+                        <ArrowRightIcon className="w-6 h-6" />
+                    </button>
+                </div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">محاسبه حد نصاب نهم</h1>
                 <p className="text-slate-500 mt-1">ابزار محاسبه نمره نهایی دروس برای هدایت تحصیلی پایه نهم.</p>
             </div>

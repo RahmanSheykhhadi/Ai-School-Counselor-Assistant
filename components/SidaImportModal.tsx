@@ -40,7 +40,6 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const handleGenerateLinks = () => {
         // Save the updated base URL
         if (baseUrl !== appSettings.sidaBaseUrl) {
-            // FIX: Explicitly type `prev` to avoid spread operator errors.
             setAppSettings((prev: AppSettings) => ({ ...prev, sidaBaseUrl: baseUrl }));
         }
 
@@ -62,8 +61,7 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const files = event.target.files;
         if (!files || files.length === 0) return;
 
-        // FIX: Explicitly type `imageFiles` as `File[]` to ensure correct type inference from `FileList`.
-        const imageFiles: File[] = Array.from(files).filter(file => 
+        const imageFiles: File[] = (Array.from(files) as File[]).filter((file: File) => 
             /\.(jpe?g|png|gif|webp)$/i.test(file.name)
         );
 
@@ -99,14 +97,8 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     updates.push({ studentId, photoUrl });
                     successCount++;
                 } catch (error) {
-                    // FIX: The `error` variable in a catch block is of type 'unknown'. Added a type guard
-                    // to safely access `.message` and an explicit string conversion for the fallback case,
-                    // resolving the "Type 'unknown' is not assignable to type 'string'" error.
-                    if (error instanceof Error) {
-                        console.error(`Error processing file ${file.name}: ${error.message}`);
-                    } else {
-                        console.error(`An unknown error occurred while processing ${file.name}: ${String(error)}`);
-                    }
+                    // FIX: Pass the 'unknown' error object as a separate argument to console.error to avoid a type error.
+                    console.error(`Error processing file ${file.name}:`, error);
                     failCount++;
                 }
             } else {
@@ -222,12 +214,11 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             >
                                 <FolderIcon className="w-10 h-10 text-slate-400" />
                                 <span className="mt-2 font-semibold text-slate-700">انتخاب پوشه عکس‌ها</span>
+                                {/* FIX: The 'webkitdirectory' and 'directory' attributes are non-standard and not in React's TS types. Spreading them in an object cast to 'any' bypasses the type check. */}
                                 <input
                                     id="folder-upload"
                                     type="file"
-                                    // @ts-ignore
-                                    webkitdirectory="true"
-                                    directory="true"
+                                    {...{ webkitdirectory: "true", directory: "true" } as any}
                                     multiple
                                     className="hidden"
                                     onChange={handleFileChange}

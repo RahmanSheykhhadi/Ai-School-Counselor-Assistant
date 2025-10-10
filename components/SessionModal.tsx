@@ -3,7 +3,7 @@ import type { Student, Session } from '../types';
 import Modal from './Modal';
 import PersianDatePicker from './PersianDatePicker';
 import * as geminiService from '../services/geminiService';
-import { SparklesIcon } from './icons';
+import { SparklesIcon, SaveIcon } from './icons';
 import { useAppContext } from '../context/AppContext';
 import { normalizePersianChars } from '../utils/helpers';
 
@@ -15,13 +15,15 @@ interface SessionModalProps {
 }
 
 export default function SessionModal({ student, session, onClose, onSave }: SessionModalProps) {
-    const { sessionTypes } = useAppContext();
+    const { sessionTypes, appSettings } = useAppContext();
     const [date, setDate] = useState<Date>(session ? new Date(session.date) : new Date());
     const [typeId, setTypeId] = useState<string>(session ? session.typeId : (sessionTypes[0]?.id || ''));
     const [notes, setNotes] = useState(session?.notes || '');
     const [actionItems, setActionItems] = useState(session?.actionItems || '');
     const [isAiLoadingSummary, setIsAiLoadingSummary] = useState(false);
     const [isAiLoadingActions, setIsAiLoadingActions] = useState(false);
+    
+    const hasApiKey = !!appSettings.geminiApiKey;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,10 +44,10 @@ export default function SessionModal({ student, session, onClose, onSave }: Sess
     };
 
     const handleSummarize = async () => {
-        if (!notes.trim()) return;
+        if (!notes.trim() || !appSettings.geminiApiKey) return;
         setIsAiLoadingSummary(true);
         try {
-            const summarizedText = await geminiService.summarizeNotes(notes);
+            const summarizedText = await geminiService.summarizeNotes(notes, appSettings.geminiApiKey);
             setNotes(summarizedText);
         } catch (error) {
             console.error(error);
@@ -55,10 +57,10 @@ export default function SessionModal({ student, session, onClose, onSave }: Sess
     };
 
     const handleSuggestActions = async () => {
-        if (!notes.trim()) return;
+        if (!notes.trim() || !appSettings.geminiApiKey) return;
         setIsAiLoadingActions(true);
         try {
-            const suggestedText = await geminiService.suggestActionItems(notes);
+            const suggestedText = await geminiService.suggestActionItems(notes, appSettings.geminiApiKey);
             setActionItems(suggestedText);
         } catch (error) {
             console.error(error);
@@ -108,7 +110,8 @@ export default function SessionModal({ student, session, onClose, onSave }: Sess
                          <button 
                             type="button" 
                             onClick={handleSummarize}
-                            disabled={isAiLoadingSummary || !notes.trim()}
+                            disabled={isAiLoadingSummary || !notes.trim() || !hasApiKey}
+                            title={!hasApiKey ? "برای استفاده از این قابلیت، کلید API را در تنظیمات وارد کنید" : "خلاصه‌سازی هوشمند"}
                             className="absolute bottom-2 left-2 flex items-center px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-semibold rounded-md hover:bg-yellow-500 disabled:bg-slate-300 disabled:cursor-not-allowed"
                         >
                            <SparklesIcon className="w-4 h-4 ml-1" />
@@ -130,8 +133,8 @@ export default function SessionModal({ student, session, onClose, onSave }: Sess
                         <button 
                             type="button" 
                             onClick={handleSuggestActions}
-                            disabled={isAiLoadingActions || !notes.trim()}
-                            title={!notes.trim() ? "برای پیشنهاد اقدام، ابتدا باید خلاصه‌ای از جلسه وجود داشته باشد" : "دریافت پیشنهاد"}
+                            disabled={isAiLoadingActions || !notes.trim() || !hasApiKey}
+                            title={!hasApiKey ? "برای استفاده از این قابلیت، کلید API را در تنظیمات وارد کنید" : (!notes.trim() ? "برای پیشنهاد اقدام، ابتدا باید خلاصه‌ای از جلسه وجود داشته باشد" : "دریافت پیشنهاد")}
                             className="absolute bottom-2 left-2 flex items-center px-3 py-1 bg-teal-400 text-teal-900 text-xs font-semibold rounded-md hover:bg-teal-500 disabled:bg-slate-300 disabled:cursor-not-allowed"
                         >
                             <SparklesIcon className="w-4 h-4 ml-1" />
@@ -143,8 +146,8 @@ export default function SessionModal({ student, session, onClose, onSave }: Sess
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">
                         انصراف
                     </button>
-                    <button type="submit" className="px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600">
-                        ذخیره جلسه
+                    <button type="submit" title="ذخیره جلسه" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
+                        <SaveIcon className="w-6 h-6" />
                     </button>
                 </div>
             </form>

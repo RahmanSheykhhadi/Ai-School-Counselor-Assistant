@@ -83,7 +83,50 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
           await seedInitialData();
         }
         
-        await loadDataFromDb();
+        // Consolidated settings load
+        let loadedSettings = await db.getSetting('appSettings');
+        
+        // Ensure settings exist and are valid, and merge with defaults for robustness.
+        if (!loadedSettings || typeof loadedSettings !== 'object') {
+            loadedSettings = mockAppSettings;
+            await db.putSetting('appSettings', loadedSettings); // Persist defaults if missing/invalid
+        } else {
+            // Merge with defaults to ensure new setting properties from app updates are included.
+            loadedSettings = { ...mockAppSettings, ...loadedSettings };
+            // FIX: Explicitly check for a null/invalid icon after merging and reset to default if needed.
+            // This handles cases where older versions of the app might have stored a null value.
+            if (!loadedSettings.appIcon) {
+                loadedSettings.appIcon = mockAppSettings.appIcon;
+            }
+        }
+
+        // The pre-React script sets the favicon from localStorage for speed.
+        // We will trust localStorage as the most recent source for the icon
+        // to ensure UI consistency and self-heal any mismatch with IndexedDB.
+        try {
+            const storedIcon = localStorage.getItem('appIcon');
+            const isValidIcon = storedIcon && (storedIcon.startsWith('/') || storedIcon.startsWith('data:'));
+            
+            if (isValidIcon && storedIcon !== loadedSettings.appIcon) {
+              loadedSettings.appIcon = storedIcon;
+              // Asynchronously update IndexedDB to fix the inconsistency.
+              await db.putSetting('appSettings', loadedSettings);
+            } else if (!isValidIcon && storedIcon !== null) {
+              // Clean up invalid data from localStorage and ensure the correct icon is set from our now-valid settings.
+              localStorage.setItem('appIcon', loadedSettings.appIcon);
+            } else if (storedIcon === null) {
+              // If there's nothing in storage, put the correct icon there.
+              localStorage.setItem('appIcon', loadedSettings.appIcon);
+            }
+        } catch(e) {
+            console.error('Could not access localStorage during init', e);
+        }
+        
+        // This is now the single point where settings are loaded into state on startup.
+        setAppSettings(loadedSettings);
+
+        // Now load the rest of the data based on the correct academic year from settings.
+        await loadDataFromDb(loadedSettings.academicYear);
 
       } catch (error) {
         console.error("Failed to initialize the application:", error);
@@ -123,8 +166,7 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   }, [appSettings.supabaseUrl, appSettings.supabaseAnonKey]);
   
   const loadDataFromDb = async (academicYearToLoad?: string) => {
-      const settings = await db.getSetting('appSettings');
-      const academicYear = academicYearToLoad || settings?.academicYear || mockAppSettings.academicYear;
+      const academicYear = academicYearToLoad || appSettings.academicYear;
 
       const data = await db.loadInitialData(academicYear);
 
@@ -134,7 +176,6 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
       setSessionTypes(data.sessionTypes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
       setStudentGroups(data.studentGroups || []);
       setWorkingDays(data.workingDays || mockWorkingDays);
-      setAppSettings(data.appSettings || mockAppSettings);
       setSpecialStudents(data.specialStudents || []);
       setCounselingNeededStudents(data.counselingNeededStudents || []);
       setThinkingObservations(data.thinkingObservations || []);
@@ -143,11 +184,9 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
 
   const setAppSettingsHandler = async (updaterOrValue: AppSettings | ((prev: AppSettings) => AppSettings)) => {
-    // FIX: Use a promise with the functional update form of `setAppSettings` to get the latest state,
-    // prevent race conditions, and ensure type safety.
     const oldAcademicYear = appSettings.academicYear;
     const newSettings = await new Promise<AppSettings>(resolve => {
-        setAppSettings(current => {
+        setAppSettings((current: AppSettings) => {
             const updated = typeof updaterOrValue === 'function' ? updaterOrValue(current) : updaterOrValue;
             resolve(updated);
             return updated;
@@ -155,6 +194,25 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
     });
 
     await db.putSetting('appSettings', newSettings);
+    
+    try {
+        if (newSettings.appIcon) {
+            localStorage.setItem('appIcon', newSettings.appIcon);
+        } else {
+            localStorage.removeItem('appIcon');
+        }
+    } catch(e) {
+        console.error('Could not access localStorage to save app icon.', e);
+    }
+
+    // After changing a setting that affects the manifest (like the icon),
+    // we ask the browser to check for an updated service worker.
+    // This encourages it to re-fetch the manifest.json.
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(registration => {
+            registration.update();
+        });
+    }
 
     if (newSettings.academicYear !== oldAcademicYear) {
         setIsLoading(true);
@@ -164,10 +222,8 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
 
   const setWorkingDaysHandler = async (updaterOrValue: WorkingDays | ((prev: WorkingDays) => WorkingDays)) => {
-    // FIX: Use a promise with the functional update form of `setWorkingDays` to get the latest state
-    // and ensure type safety, preventing spread operator errors.
     const newDays = await new Promise<WorkingDays>(resolve => {
-        setWorkingDays(current => {
+        setWorkingDays((current: WorkingDays) => {
             const updated = typeof updaterOrValue === 'function' ? updaterOrValue(current) : updaterOrValue;
             resolve(updated);
             return updated;
@@ -266,9 +322,51 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
       setStudentGroups(prev => [...prev, newGroup]);
   };
 
+  const handleUpdateGroup = async (group: StudentGroup) => {
+      await db.putStudentGroup(group);
+      setStudentGroups(prev => prev.map(g => g.id === group.id ? group : g));
+  };
+
   const handleDeleteGroup = async (groupId: string) => {
       await db.deleteStudentGroup(groupId);
       setStudentGroups(prev => prev.filter(g => g.id !== groupId));
+  };
+
+  const handleMoveStudentToGroup = async (studentId: string, sourceGroupId: string | null, destinationGroupId: string | null) => {
+    if (sourceGroupId === destinationGroupId) return;
+
+    setStudentGroups(prevGroups => {
+        const updatedGroups = JSON.parse(JSON.stringify(prevGroups));
+
+        if (sourceGroupId) {
+            const sourceGroup = updatedGroups.find((g: StudentGroup) => g.id === sourceGroupId);
+            if (sourceGroup) {
+                sourceGroup.studentIds = sourceGroup.studentIds.filter((id: string) => id !== studentId);
+            }
+        }
+
+        if (destinationGroupId) {
+            const destGroup = updatedGroups.find((g: StudentGroup) => g.id === destinationGroupId);
+            if (destGroup) {
+                if (!destGroup.studentIds.includes(studentId)) {
+                    destGroup.studentIds.push(studentId);
+                }
+            }
+        }
+        
+        db.putStudentGroups(updatedGroups);
+        return updatedGroups;
+    });
+  };
+  
+  const handleReorderStudentGroups = async (reorderedGroups: StudentGroup[]) => {
+    const updatedWithOrder = reorderedGroups.map((g, index) => ({...g, order: index}));
+    await db.putStudentGroups(updatedWithOrder);
+    setStudentGroups(prev => {
+        const updatedMap = new Map(updatedWithOrder.map(g => [g.id, g]));
+        const otherGroups = prev.filter(g => !updatedMap.has(g.id));
+        return [...otherGroups, ...updatedWithOrder];
+    });
   };
 
   const handleUpdateSpecialStudentInfo = async (info: SpecialStudentInfo) => {
@@ -311,6 +409,7 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
           if (existing) {
               return prev.map(s => s.studentId === evaluation.studentId ? evaluation : s);
           }
+// FIX: Corrected a typo where an undefined variable `info` was used instead of `evaluation` when adding a new item to the state.
           return [...prev, evaluation];
       });
   };
@@ -318,34 +417,44 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   const handleRestore = async (data: BackupData, fromSync = false) => {
     setIsLoading(true);
     
-    let studentsToRestore = (data.students || []).map(s => {
+    let studentsToRestore = (data.students || []).filter(s => s && typeof s === 'object').map(s => {
         const { grade, ...rest } = s as any; // Remove grade property if it exists
         return rest;
     });
 
-    // --- ROBUST DATA MIGRATION FIX ---
-    // If the backup has students but NO classrooms, it's an old backup.
-    // Force all students to have no class, ensuring they appear in "Manual Assign".
-    // This prevents the "grade" from being incorrectly interpreted as a "class".
     if (studentsToRestore.length > 0 && (!data.classrooms || data.classrooms.length === 0)) {
         studentsToRestore = studentsToRestore.map(student => ({
             ...student,
-            classroomId: '' // Explicitly clear the classroom ID.
+            classroomId: ''
         }));
     }
-    // --- END OF FIX ---
 
-    const sanitizedClassrooms = (data.classrooms || []).map(c => {
-        const { grade, ...rest } = c as any; // Remove grade if it exists
+    const sanitizedClassrooms = (data.classrooms || []).filter(c => c && typeof c === 'object').map(c => {
+        const { grade, ...rest } = c as any;
         return rest;
     });
 
     const targetAcademicYear = data.appSettings?.academicYear || mockAppSettings.academicYear;
-    const restoredAppSettings = { ...mockAppSettings, ...(data.appSettings || {}), academicYear: targetAcademicYear };
     
-    const classroomsWithYear = sanitizedClassrooms.map(c => ({ ...c, academicYear: targetAcademicYear }));
-    const studentsWithYear = studentsToRestore.map(s => ({ ...s, academicYear: targetAcademicYear }));
-    const sessionsWithYear = (data.sessions || []).map(s => ({ ...s, academicYear: targetAcademicYear }));
+    // FIX: Safely merge appSettings by checking if it's an object, preventing spread operator errors on non-object types.
+    const settingsFromBackup = (data.appSettings && typeof data.appSettings === 'object' && !Array.isArray(data.appSettings)) ? data.appSettings : {};
+    const restoredAppSettings = Object.assign({}, mockAppSettings, settingsFromBackup, {
+      academicYear: targetAcademicYear
+    });
+    
+    const classroomsWithYear = sanitizedClassrooms
+        .filter(c => c && typeof c === 'object')
+        .map(c => Object.assign({}, c, { academicYear: targetAcademicYear }) as Classroom);
+    
+    // FIX: Safely map students, ensuring they are valid objects before processing to avoid spread operator errors.
+    const studentsWithYear = studentsToRestore
+      .filter(s => s && typeof s === 'object' && !Array.isArray(s))
+      .map(s => (Object.assign({}, s, { academicYear: targetAcademicYear }) as Student));
+    
+    // FIX: Safely map sessions, ensuring they are valid objects before processing to avoid spread operator errors.
+    const sessionsWithYear = (data.sessions || [])
+        .filter((s): s is Session => !!(s && typeof s === 'object' && !Array.isArray(s) && s.id && s.studentId && s.date && s.typeId))
+        .map(s => Object.assign({}, s, { academicYear: targetAcademicYear }));
 
     await db.clearAllData();
     
@@ -365,6 +474,20 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
         const syncTime = new Date();
         await db.putSetting('lastSyncTime', syncTime.toISOString());
     }
+    
+    try {
+        if (restoredAppSettings.appIcon) {
+            localStorage.setItem('appIcon', restoredAppSettings.appIcon);
+        } else {
+            localStorage.removeItem('appIcon');
+        }
+    } catch (e) {
+        console.error('Could not access localStorage during restore.', e);
+    }
+    
+    // FIX: After restoring data to the DB, the React state must be updated.
+    // This ensures the UI reflects the restored data without needing a page reload.
+    setAppSettings(restoredAppSettings);
     
     await loadDataFromDb(targetAcademicYear);
     setIsLoading(false);
@@ -490,12 +613,14 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
   };
 
   const handleReorderMoreMenu = async (reorderedMenu: View[]) => {
-      // FIX: Explicitly type `prev` to avoid spread operator type error when using functional updates.
       await setAppSettingsHandler((prev: AppSettings) => ({ ...prev, moreMenuOrder: reorderedMenu }));
   };
 
   const handleFactoryReset = async () => {
       setIsLoading(true);
+      try {
+        localStorage.removeItem('appIcon');
+      } catch(e) { console.error('Could not access localStorage during factory reset.', e); }
       await db.clearAllData();
       await seedInitialData();
       await loadDataFromDb();
@@ -605,7 +730,10 @@ export const AppContextProvider = ({ children }: PropsWithChildren) => {
     handleUpdateSessionType,
     handleDeleteSessionType,
     handleSaveGroup,
+    handleUpdateGroup,
     handleDeleteGroup,
+    handleMoveStudentToGroup,
+    handleReorderStudentGroups,
     handleUpdateSpecialStudentInfo,
     handleUpdateCounselingNeededInfo,
     handleUpdateThinkingObservation,

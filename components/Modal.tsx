@@ -5,7 +5,6 @@ interface ModalProps {
   children: ReactNode;
 }
 
-// FIX: Explicitly type Modal as a React.FC to resolve issues with TypeScript's JSX type checking.
 const Modal: React.FC<ModalProps> = ({ onClose, children }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 

@@ -42,4 +42,7 @@ export const mockAppSettings: AppSettings = {
     supabaseAnonKey: '',
     moreMenuOrder: ['special-students', 'counseling-needed-students', 'thinking-lifestyle', 'grade-nine-quorum', 'reports', 'settings', 'help'],
     thinkingClassroomIds: [],
+    appIcon: '',
+    geminiApiKey: '',
+    hasAcceptedDisclaimer: false,
 };

@@ -5,8 +5,8 @@ import { Session, Student } from '../types';
 import SessionCard from './SessionCard';
 import SessionModal from './SessionModal';
 import ConfirmationModal from './ConfirmationModal';
-import { toPersianDigits, verifyPassword } from '../utils/helpers';
-import { SearchIcon, LockClosedIcon } from './icons';
+import { toPersianDigits, verifyPassword, normalizePersianChars } from '../utils/helpers';
+import { SearchIcon, LockClosedIcon, ArrowRightIcon } from './icons';
 
 export default function AllSessionsView({ onBack }: { onBack: () => void }) {
     const { sessions, students, handleSaveSession, handleDeleteSession, appSettings, isArchiveUnlocked, setIsArchiveUnlocked } = useAppContext();
@@ -14,13 +14,55 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
     const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>({});
 
     const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
-    const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
-
-    // --- Security State ---
+    const [sessionToDeleteId, setSessionToDeleteId] = useState<string | null>(null);
+    
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isUnlocking, setIsUnlocking] = useState(false);
 
+    const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
+
+    const filteredSessions = useMemo(() => {
+        const normalizedSearch = normalizePersianChars(searchTerm.toLowerCase());
+        if (!normalizedSearch) return sessions;
+
+        return sessions.filter(session => {
+            const student = studentMap.get(session.studentId);
+            if (!student) return false;
+            
+            const studentName = normalizePersianChars(`${student.firstName} ${student.lastName}`).toLowerCase();
+            return studentName.includes(normalizedSearch);
+        });
+    }, [sessions, searchTerm, studentMap]);
+
+    const sessionsByMonth = useMemo(() => {
+        const groups: { [key: string]: Session[] } = {};
+        filteredSessions
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .forEach(session => {
+                const monthKey = moment(session.date).locale('fa').format('jYYYY jMMMM');
+                if (!groups[monthKey]) {
+                    groups[monthKey] = [];
+                }
+                groups[monthKey].push(session);
+            });
+        return groups;
+    }, [filteredSessions]);
+
+    useEffect(() => {
+        // Automatically expand the most recent month on initial load if not searching
+        if (!searchTerm) {
+            const firstMonth = Object.keys(sessionsByMonth)[0];
+            if (firstMonth) {
+                setExpandedMonths({ [firstMonth]: true });
+            }
+        }
+    }, []); // Run only once
+
+    const toggleMonth = (month: string) => {
+        setExpandedMonths(prev => ({ ...prev, [month]: !prev[month] }));
+    };
+    
     const handleUnlockArchive = async (password: string): Promise<boolean> => {
         if (!appSettings.sessionPasswordHash) {
             setIsArchiveUnlocked(true);
@@ -46,95 +88,24 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
         setIsUnlocking(false);
     };
 
-    const isProtectedAndLocked = appSettings.passwordProtectionEnabled && !isArchiveUnlocked;
-
-    const pastSessions = useMemo(() => {
-        return sessions
-            .filter(s => new Date(s.date) < new Date())
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [sessions]);
-
-    const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
-
-    const filteredSessions = useMemo(() => {
-        if (!searchTerm.trim()) {
-            return pastSessions;
-        }
-        const lowercasedSearch = searchTerm.toLowerCase();
-        const matchingStudentIds = new Set(
-            students
-                .filter(s => `${s.firstName} ${s.lastName}`.toLowerCase().includes(lowercasedSearch))
-                .map(s => s.id)
-        );
-        return pastSessions.filter(s => matchingStudentIds.has(s.studentId));
-    }, [searchTerm, pastSessions, students]);
-
-    const sessionsByMonth = useMemo<Map<string, Session[]>>(() => {
-        const groups = new Map<string, Session[]>();
-        filteredSessions.forEach(session => {
-            const monthKey = moment(session.date).locale('fa').format('jMMMM jYYYY');
-            if (!groups.has(monthKey)) {
-                groups.set(monthKey, []);
-            }
-            groups.get(monthKey)!.push(session);
-        });
-        return groups;
-    }, [filteredSessions]);
-    
-    useEffect(() => {
-        const firstMonthKey = sessionsByMonth.keys().next().value;
-        // FIX: Add an explicit type check for firstMonthKey to ensure it's a string before using it as a computed property name.
-        if (typeof firstMonthKey === 'string' && !searchTerm) {
-             setExpandedMonths({ [firstMonthKey]: true });
-        } else if (searchTerm) {
-            const allMonthKeys = Array.from(sessionsByMonth.keys());
-            const allExpanded: Record<string, boolean> = {};
-            for (const key of allMonthKeys) {
-                // FIX: Explicitly type check 'key' to resolve "Type 'unknown' cannot be used as an index type" error.
-                if (typeof key === 'string') {
-                    allExpanded[key] = true;
-                }
-            }
-            setExpandedMonths(allExpanded);
-        }
-    }, [sessionsByMonth, searchTerm]);
-
-
-    const toggleMonth = (monthKey: string) => {
-        setExpandedMonths(prev => ({ ...prev, [monthKey]: !prev[monthKey] }));
-    };
-
-    const handleEdit = (session: Session) => {
-        setSessionToEdit(session);
-    };
-
-    const handleDeleteRequest = (sessionId: string) => {
-        const session = pastSessions.find(s => s.id === sessionId);
-        if(session) {
-            setSessionToDelete(session);
-        }
-    };
-
     const handleSaveAndClose = (sessionData: Session | Omit<Session, 'id' | 'academicYear'>) => {
         handleSaveSession(sessionData);
         setSessionToEdit(null);
     };
     
     const confirmDelete = () => {
-        if (sessionToDelete) {
-            handleDeleteSession(sessionToDelete.id);
-            setSessionToDelete(null);
+        if(sessionToDeleteId) {
+            handleDeleteSession(sessionToDeleteId);
+            setSessionToDeleteId(null);
         }
     };
 
-    const monthKeys: string[] = Array.from(sessionsByMonth.keys());
-
-    if (isProtectedAndLocked) {
+    if (appSettings.passwordProtectionEnabled && !isArchiveUnlocked) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-white rounded-xl shadow-sm">
                 <LockClosedIcon className="w-12 h-12 text-slate-400 mb-4" />
-                <h2 className="text-xl font-bold text-slate-800">آرشیو محافظت شده</h2>
-                <p className="text-slate-500 my-2">برای دسترسی به آرشیو جلسات گذشته، لطفا رمز عبور را وارد کنید.</p>
+                <h2 className="text-xl font-bold text-slate-800">آرشیو جلسات قفل است</h2>
+                <p className="text-slate-500 my-2">برای مشاهده تاریخچه جلسات، لطفا رمز عبور را وارد کنید.</p>
                 <form onSubmit={handlePasswordSubmit} className="mt-4 w-full max-w-xs">
                     <input
                         type="password"
@@ -150,8 +121,9 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
                     />
                     {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                     <button type="submit" disabled={isUnlocking} className="mt-3 w-full px-6 py-2 bg-sky-500 text-white font-semibold rounded-lg shadow-sm hover:bg-sky-600 transition-colors disabled:bg-slate-400">
-                        {isUnlocking ? 'در حال بررسی...' : 'باز کردن'}
+                        {isUnlocking ? 'در حال بررسی...' : 'باز کردن آرشیو'}
                     </button>
+                     <button type="button" onClick={onBack} className="mt-4 text-sm text-sky-600 hover:underline">بازگشت به داشبورد</button>
                 </form>
             </div>
         );
@@ -160,64 +132,50 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
     return (
         <div className="space-y-6">
             <div>
-                <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به داشبورد</button>
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">آرشیو جلسات گذشته</h1>
+                 <button onClick={onBack} title="بازگشت به داشبورد" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
+                    <ArrowRightIcon className="w-6 h-6" />
+                </button>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">آرشیو تمام جلسات</h1>
             </div>
-            
-            <div className="relative">
+             <div className="relative">
                 <input
                     type="text"
-                    placeholder="جستجوی نام دانش‌آموز..."
+                    placeholder="جستجوی دانش‌آموز..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full p-3 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full p-2 pr-10 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
                 />
                 <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             </div>
 
-            <div className="space-y-3">
-                {monthKeys.length > 0 ? monthKeys.map(monthKey => {
-                    const monthSessions = sessionsByMonth.get(monthKey)!;
-                    const isExpanded = !!expandedMonths[monthKey];
-                    return (
-                        <div key={monthKey} className="bg-white rounded-xl shadow-sm transition-shadow hover:shadow-md">
-                            <button
-                                onClick={() => toggleMonth(monthKey)}
-                                className={`w-full p-4 text-right flex justify-between items-center transition-colors hover:bg-slate-50 ${isExpanded ? 'rounded-t-xl' : 'rounded-xl'}`}
-                            >
-                                <p className="font-bold text-lg text-slate-800">{monthKey}</p>
-                                <div className="flex items-center">
-                                    <span className="text-sm font-semibold bg-sky-100 text-sky-700 px-3 py-1 rounded-full">
-                                        {toPersianDigits(monthSessions.length)} جلسه
-                                    </span>
-                                    <span className={`ml-4 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : 'rotate-0'}`}>
-                                        ▼
-                                    </span>
-                                </div>
-                            </button>
-                            {isExpanded && (
-                                <div className="p-4 border-t border-slate-200 space-y-3 bg-slate-50 rounded-b-xl">
-                                    {monthSessions.map(session => {
-                                        const student = studentMap.get(session.studentId);
-                                        if (!student) return null;
-                                        return (
-                                            <SessionCard
-                                                key={session.id}
-                                                session={session}
-                                                student={student}
-                                                onEdit={handleEdit}
-                                                onDelete={handleDeleteRequest}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    )
-                }) : (
-                     <div className="text-center bg-white p-12 rounded-xl shadow-sm">
-                        <p className="text-slate-500">
-                            {searchTerm ? `هیچ جلسه گذشته‌ای برای "${searchTerm}" یافت نشد.` : 'هنوز هیچ جلسه‌ای به آرشیو اضافه نشده است.'}
+            <div className="space-y-4">
+                {Object.entries(sessionsByMonth).map(([month, sessionsInMonth]: [string, Session[]]) => (
+                    <div key={month} className="bg-white p-4 rounded-xl shadow-sm">
+                        <button onClick={() => toggleMonth(month)} className="w-full flex justify-between items-center text-right font-bold text-lg text-slate-800">
+                            <span>{month}</span>
+                            <span className="text-sm font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                                {toPersianDigits(sessionsInMonth.length)} جلسه
+                            </span>
+                        </button>
+                        {(expandedMonths[month] || searchTerm) && (
+                            <div className="mt-4 pt-4 border-t space-y-3">
+                                {sessionsInMonth.map(session => (
+                                    <SessionCard 
+                                        key={session.id}
+                                        session={session} 
+                                        student={studentMap.get(session.studentId)}
+                                        onEdit={setSessionToEdit}
+                                        onDelete={setSessionToDeleteId}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ))}
+                 {Object.keys(sessionsByMonth).length === 0 && (
+                    <div className="text-center bg-white p-12 rounded-xl shadow-sm">
+                         <p className="text-slate-500">
+                            {searchTerm ? 'هیچ جلسه‌ای برای این دانش‌آموز یافت نشد.' : 'هنوز هیچ جلسه‌ای ثبت نشده است.'}
                         </p>
                     </div>
                 )}
@@ -232,12 +190,12 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
                 />
             )}
             
-            {sessionToDelete && (
+            {sessionToDeleteId && (
                 <ConfirmationModal
                     title="حذف جلسه"
                     message="آیا از حذف این جلسه اطمینان دارید؟"
                     onConfirm={confirmDelete}
-                    onCancel={() => setSessionToDelete(null)}
+                    onCancel={() => setSessionToDeleteId(null)}
                     confirmButtonText="بله، حذف کن"
                 />
             )}

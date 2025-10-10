@@ -57,6 +57,7 @@ export const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file
             ...mockAppSettings, // Start with current app defaults
             ...restoredAppSettings, // Apply all settings from the backup file
             moreMenuOrder: finalMenuOrder, // Explicitly use the merged menu order
+            appIcon: restoredAppSettings.appIcon || mockAppSettings.appIcon, // Ensure icon exists
         };
         // --- END OF MERGE ---
 
@@ -100,8 +101,7 @@ export const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file
             return student;
         });
         
-        // FIX: Added 'studentGroups' to the restored data object to match the 'BackupData' type.
-        const finalData: BackupData = { ...restoredData, students: studentsWithRestoredPhotos };
+        const finalData: BackupData = { ...restoredData, students: studentsWithRestoredPhotos, studentGroups: restoredData.studentGroups };
         
         setProgress(90);
         setMessage('در حال به‌روزرسانی برنامه...');
@@ -118,7 +118,6 @@ export const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file
       } catch (error: unknown) {
         console.error("Restore error:", error);
         
-        // FIX: Re-implemented for maximum robustness to avoid "[object Object]".
         let errorMessage = 'An unexpected error occurred during restore.';
         if (error instanceof Error) {
             errorMessage = error.message;

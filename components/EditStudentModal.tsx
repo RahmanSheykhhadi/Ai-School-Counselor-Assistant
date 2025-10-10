@@ -3,6 +3,7 @@ import type { Student } from '../types';
 import Modal from './Modal';
 import { normalizePersianChars } from '../utils/helpers';
 import { useAppContext } from '../context/AppContext';
+import { SaveIcon } from './icons';
 
 interface EditStudentModalProps {
     student: Student;
@@ -149,8 +150,8 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, onClose, o
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">
                         انصراف
                     </button>
-                    <button type="submit" className="px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600">
-                        ذخیره تغییرات
+                    <button type="submit" title="ذخیره تغییرات" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
+                        <SaveIcon className="w-6 h-6" />
                     </button>
                 </div>
             </form>

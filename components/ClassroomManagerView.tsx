@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { PlusIcon, EditIcon, TrashIcon } from './icons';
+import { PlusIcon, EditIcon, TrashIcon, SaveIcon, ArrowRightIcon } from './icons';
 import Modal from './Modal';
 import ConfirmationModal from './ConfirmationModal';
 import { normalizePersianChars } from '../utils/helpers';
@@ -41,7 +41,9 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({ onSave, onCancel, initial
             </div>
             <div className="flex justify-end space-x-reverse space-x-2 pt-4">
                 <button type="button" onClick={onCancel} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">انصراف</button>
-                <button type="submit" className="px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600">ذخیره</button>
+                <button type="submit" title="ذخیره" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
+                    <SaveIcon className="w-6 h-6" />
+                </button>
             </div>
         </form>
     );
@@ -74,7 +76,9 @@ const ClassroomManagerView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     return (
         <div className="space-y-6">
             <div>
-                <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به لیست دانش‌آموزان</button>
+                <button onClick={onBack} title="بازگشت به لیست دانش‌آموزان" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
+                    <ArrowRightIcon className="w-6 h-6" />
+                </button>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">مدیریت و تعریف کلاس‌ها</h1>
@@ -82,10 +86,10 @@ const ClassroomManagerView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     </div>
                     <button
                         onClick={() => { setEditingClassroom(null); setIsFormModalOpen(true); }}
-                        className="flex items-center bg-sky-500 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-sky-600 transition-colors"
+                        className="self-center sm:self-auto flex items-center bg-sky-500 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-sky-600 transition-colors"
                     >
                         <PlusIcon />
-                        <span className="mr-2">افزودن کلاس جدید</span>
+                        <span className="mr-2">افزودن</span>
                     </button>
                 </div>
             </div>

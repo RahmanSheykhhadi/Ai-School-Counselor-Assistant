@@ -45,6 +45,7 @@ export interface StudentGroup {
   name: string;
   classroomId: string;
   studentIds: string[];
+  order?: number;
 }
 
 export interface WorkingDays {
@@ -68,6 +69,9 @@ export interface AppSettings {
   supabaseAnonKey: string;
   moreMenuOrder?: View[];
   thinkingClassroomIds?: string[];
+  appIcon?: string;
+  geminiApiKey?: string;
+  hasAcceptedDisclaimer?: boolean;
 }
 
 export interface SpecialStudentInfo {
@@ -96,9 +100,9 @@ export interface ThinkingObservation {
 
 export interface ThinkingEvaluation {
   studentId: string;
-  activityScore?: number;
-  projectScore?: number;
-  examScore?: number;
+  activityScore?: number; // max 5
+  projectScore?: number;  // max 5
+  examScore?: number;     // max 5
 }
 
 export type BackupData = {
@@ -142,7 +146,10 @@ export interface AppContextType {
   handleUpdateSessionType: (sessionType: SessionType) => Promise<void>;
   handleDeleteSessionType: (id: string) => Promise<void>;
   handleSaveGroup: (group: Omit<StudentGroup, 'id'>) => Promise<void>;
+  handleUpdateGroup: (group: StudentGroup) => Promise<void>;
   handleDeleteGroup: (groupId: string) => Promise<void>;
+  handleMoveStudentToGroup: (studentId: string, sourceGroupId: string | null, destinationGroupId: string | null) => Promise<void>;
+  handleReorderStudentGroups: (reorderedGroups: StudentGroup[]) => Promise<void>;
   handleUpdateSpecialStudentInfo: (info: SpecialStudentInfo) => Promise<void>;
   handleUpdateCounselingNeededInfo: (info: CounselingNeededInfo) => Promise<void>;
   handleUpdateThinkingObservation: (observation: ThinkingObservation) => Promise<void>;

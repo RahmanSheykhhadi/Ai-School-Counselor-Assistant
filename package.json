@@ -14,7 +14,7 @@
     "@google/genai": "1.20.0",
     "idb": "8.0.0",
     "@supabase/supabase-js": "2.44.4",
-    "jalali-moment": "latest",
+    "jalali-moment": "3.3.11",
     "jszip": "3.10.1",
     "xlsx": "0.18.5"
   },

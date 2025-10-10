@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppContextProvider, useAppContext } from './context/AppContext';
 import type { View } from './types';
 import Sidebar from './components/Sidebar';
+import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import AllStudentsView from './components/AllStudentsView';
 import StudentDetail from './components/StudentDetail';
@@ -18,9 +19,10 @@ import ManualAssignView from './components/ManualAssignView';
 import { ThinkingLifestyleView } from './components/ThinkingLifestyleView';
 import ClassroomManagerView from './components/ClassroomManagerView';
 import { AppLogoIcon } from './components/icons';
+import DisclaimerModal from './components/DisclaimerModal';
 
 function AppContent() {
-  const { students, appSettings, setIsArchiveUnlocked, isLoading } = useAppContext();
+  const { students, appSettings, setAppSettings, setIsArchiveUnlocked, isLoading } = useAppContext();
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
@@ -34,6 +36,25 @@ function AppContent() {
         root.style.fontSize = sizeMap[appSettings.fontSize] || '16px';
     }
   }, [appSettings.fontSize]);
+
+    useEffect(() => {
+        // This effect updates the live favicon and forces a manifest refetch
+        // when the icon changes in settings. The service worker handles the
+        // dynamic manifest generation.
+        const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
+        const manifestLink = document.getElementById('manifest-link') as HTMLLinkElement | null;
+        const iconUrl = appSettings.appIcon;
+
+        if (iconUrl && favicon) {
+            favicon.href = iconUrl;
+        }
+
+        if (manifestLink) {
+            // By changing the href with a timestamp, we force the browser to re-fetch the manifest,
+            // bypassing any potential cache and ensuring the service worker intercept runs.
+            manifestLink.href = `/manifest.json?v=${new Date().getTime()}`;
+        }
+    }, [appSettings.appIcon]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -76,6 +97,10 @@ function AppContent() {
   const backToMore = () => {
       navigate('more');
   }
+  
+  const handleAcceptDisclaimer = () => {
+    setAppSettings(prev => ({ ...prev, hasAcceptedDisclaimer: true }));
+  };
 
   const renderCurrentView = () => {
       switch (currentView) {
@@ -90,9 +115,9 @@ function AppContent() {
           case 'calendar':
               return <CalendarView />;
           case 'reports':
-              return <ReportsView />;
+              return <ReportsView onBack={backToMore} />;
           case 'settings':
-              return <SettingsView />;
+              return <SettingsView onBack={backToMore} />;
           case 'all-sessions':
               return <AllSessionsView onBack={backToDashboard} />;
           case 'upcoming-sessions':
@@ -119,18 +144,25 @@ function AppContent() {
   if (isLoading) {
     return (
         <div className="flex flex-col justify-center items-center h-screen bg-slate-100 text-slate-600">
-            <AppLogoIcon className="w-20 h-20 animate-pulse" />
+            <AppLogoIcon iconUrl={appSettings.appIcon} className="w-20 h-20 animate-pulse" />
             <p className="mt-4 text-lg font-semibold">در حال بارگذاری اطلاعات...</p>
         </div>
     );
+  }
+  
+  if (!appSettings.hasAcceptedDisclaimer) {
+      return <DisclaimerModal onAccept={handleAcceptDisclaimer} />;
   }
 
   return (
     <div className="flex flex-col md:flex-row h-full font-sans bg-slate-100" dir="rtl">
         <Sidebar currentView={currentView} onNavigate={navigate} />
-        <main className="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto mb-16 md:mb-0">
-            {renderCurrentView()}
-        </main>
+        <div className="flex-1 flex flex-col min-h-0">
+            <Header currentView={currentView} />
+            <main className="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto mb-16 md:mb-0">
+                {renderCurrentView()}
+            </main>
+        </div>
     </div>
   );
 }

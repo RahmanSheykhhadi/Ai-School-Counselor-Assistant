@@ -3,8 +3,9 @@ import moment from 'jalali-moment';
 import { useAppContext } from '../context/AppContext';
 import PersianDatePicker from './PersianDatePicker';
 import { sortClassrooms, toPersianDigits } from '../utils/helpers';
+import { ArrowRightIcon } from './icons';
 
-export default function ReportsView() {
+export default function ReportsView({ onBack }: { onBack: () => void }) {
     const { sessions, sessionTypes, students, classrooms } = useAppContext();
     const [startDate, setStartDate] = useState(() => moment().locale('fa').startOf('jMonth').toDate());
     const [endDate, setEndDate] = useState(() => moment().locale('fa').endOf('jMonth').toDate());
@@ -51,9 +52,14 @@ export default function ReportsView() {
     
   return (
     <div className="space-y-6">
-        <div>
+        <div className="relative text-center">
+            <div className="absolute top-1/2 -translate-y-1/2 right-0">
+                <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors">
+                    <ArrowRightIcon className="w-6 h-6" />
+                </button>
+            </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">گزارشات</h1>
-            <p className="text-slate-500 mt-1 text-justify">تحلیل فراوانی انواع جلسات در بازه‌های زمانی دلخواه.</p>
+            <p className="text-slate-500 mt-1">تحلیل فراوانی انواع جلسات در بازه‌های زمانی دلخواه.</p>
         </div>
         <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-4 transition-shadow hover:shadow-md">
             <h2 className="text-lg font-semibold text-slate-700">فیلترهای گزارش</h2>

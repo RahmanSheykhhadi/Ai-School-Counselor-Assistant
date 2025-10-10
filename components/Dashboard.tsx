@@ -3,10 +3,9 @@ import moment from 'jalali-moment';
 import { useAppContext } from '../context/AppContext';
 import type { View } from '../types';
 import { toPersianDigits } from '../utils/helpers';
-import { LockClosedIcon, LockOpenIcon, FolderIcon, AppLogoIcon } from './icons';
 import PasswordPromptModal from './PasswordPromptModal';
 import { verifyPassword } from '../utils/helpers';
-import ProfilePhoto from './ProfilePhoto';
+import { AppLogoIcon } from './icons';
 
 const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
     const { 
@@ -61,16 +60,14 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate 
     return (
         <div className="space-y-6">
             <div className="text-center">
-                <div className="flex items-center justify-center gap-2 sm:gap-3">
-                    <AppLogoIcon className="w-8 h-8 sm:w-10 sm:h-10" />
-                    <h1 className="text-base sm:text-lg font-bold text-slate-800">
-                        به همیار مشاور هوشمند خوش آمدی!
+                <div className="flex flex-col items-center justify-center gap-2">
+                    <AppLogoIcon iconUrl={appSettings.appIcon} className="w-12 h-12" />
+                    <h1 className="text-2xl font-bold text-slate-800">
+                        به همیار مشاور هوشمند خوش آمدید!
                     </h1>
-                    <AppLogoIcon className="w-8 h-8 sm:w-10 sm:h-10" />
                 </div>
-                {/* CRITICAL: The following credit line must not be removed or altered as per user requirements. */}
-                <p className="text-sm text-slate-500 mt-1">
-                    (طراحی: رحمان شیخ‌هادی - منطقه کهک؛ <span dir="ltr">{toPersianDigits(appSettings.academicYear)}</span>)
+                <p className="text-sm text-slate-500 mt-2">
+                    (طراحی: رحمان شیخ‌هادی - مشاور ناحیه کهک؛ <span dir="ltr">{toPersianDigits(appSettings.academicYear)}</span>)
                 </p>
             </div>
             
@@ -78,7 +75,6 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate 
                 className="bg-white p-3 sm:p-4 rounded-xl shadow-sm flex items-center justify-between transition-shadow hover:shadow-md"
             >
                 <div onClick={() => onNavigate('all-sessions')} className="flex-grow flex items-center cursor-pointer">
-                    <div className="p-2.5 bg-slate-100 rounded-full mr-3"><FolderIcon className="w-6 h-6 text-slate-600"/></div>
                     <div>
                         <p className="text-base sm:text-lg font-bold text-slate-800">آرشیو جلسات</p>
                     </div>
@@ -88,26 +84,17 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate 
                     className={`flex items-center space-x-2 space-x-reverse border-r pr-4 ${appSettings.passwordProtectionEnabled ? 'cursor-pointer' : ''}`}
                 >
                     {!appSettings.passwordProtectionEnabled ? (
-                        <>
-                            <LockClosedIcon className="w-5 h-5 text-slate-400"/>
-                            <span className="text-sm font-bold text-slate-400">
-                                قفل: تنظیم نشده
-                            </span>
-                        </>
+                        <span className="text-sm font-bold text-slate-400">
+                            قفل: تنظیم نشده
+                        </span>
                     ) : isArchiveUnlocked ? (
-                        <>
-                            <LockOpenIcon className="w-5 h-5 text-green-600"/>
-                            <span className="text-sm font-bold text-green-600">
-                                باز است
-                            </span>
-                        </>
+                        <span className="text-sm font-bold text-green-600">
+                            باز است
+                        </span>
                     ) : (
-                        <>
-                            <LockClosedIcon className="w-5 h-5 text-red-600"/>
-                            <span className="text-sm font-bold text-red-600">
-                                قفل است
-                            </span>
-                        </>
+                        <span className="text-sm font-bold text-red-600">
+                            قفل است
+                        </span>
                     )}
                 </div>
             </div>
@@ -137,7 +124,6 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate 
                                 >
                                     <div className="flex justify-between items-center">
                                         <div className="flex items-center gap-3">
-                                            {student && <ProfilePhoto photoUrl={student.photoUrl} alt={student.firstName} className="w-10 h-10 rounded-full" />}
                                             <div>
                                                 <p className="font-semibold text-slate-800">{student ? `${student.firstName} ${student.lastName}` : 'دانش‌آموز حذف شده'}</p>
                                                 <p className="text-[13px] text-slate-500">

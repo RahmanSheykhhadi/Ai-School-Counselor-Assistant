@@ -51,7 +51,8 @@ const AutoAssignModal: React.FC<AutoAssignModalProps> = ({ onClose }) => {
             
             // Step 3: Match students by National ID and prepare updates
             setResultMessage('مرحله ۳: تطبیق دادن دانش‌آموزان بر اساس کد ملی...');
-            const studentByNationalId = new Map(students.map(s => [String(s.nationalId || '').trim(), s]));
+            // FIX: Explicitly type the Map to ensure correct type inference for `matchedStudent`.
+            const studentByNationalId: Map<string, Student> = new Map(students.map(s => [String(s.nationalId || '').trim(), s]));
 
             const updates: { studentId: string, data: { classroomId?: string } }[] = [];
             let updatedStudentsCount = 0;
@@ -72,12 +73,10 @@ const AutoAssignModal: React.FC<AutoAssignModalProps> = ({ onClose }) => {
 
                     const matchedStudent = studentByNationalId.get(nationalId);
                     
-                    // FIX: Added a type assertion to Student to resolve the "property does not exist on type 'unknown'" error.
                     if (matchedStudent) {
-                        const typedStudent = matchedStudent as Student;
-                        if (typedStudent.classroomId !== classroomId) {
+                        if (matchedStudent.classroomId !== classroomId) {
                             updates.push({
-                                studentId: typedStudent.id,
+                                studentId: matchedStudent.id,
                                 data: { classroomId },
                             });
                         }

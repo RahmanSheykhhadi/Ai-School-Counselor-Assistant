@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import SessionModal from './SessionModal';
 import SessionCard from './SessionCard';
 import ConfirmationModal from './ConfirmationModal';
-import { PlusIcon, EditIcon, TrashIcon, UploadIcon } from './icons';
+import { PlusIcon, EditIcon, TrashIcon, UploadIcon, ArrowRightIcon } from './icons';
 import { toPersianDigits } from '../utils/helpers';
 import ProfilePhoto from './ProfilePhoto';
 import EditStudentModal from './EditStudentModal';
@@ -179,7 +179,9 @@ export default function StudentDetail({ studentId, onBack }: StudentDetailProps)
   return (
     <div className="space-y-6">
       <div>
-        <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به لیست دانش‌آموزان</button>
+        <button onClick={onBack} title="بازگشت به لیست دانش‌آموزان" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
+            <ArrowRightIcon className="w-6 h-6" />
+        </button>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center">
             <div 

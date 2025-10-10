@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import moment from 'jalali-moment';
 import { useAppContext } from '../context/AppContext';
-// FIX: Import the `WorkingDays` type to resolve the reference error.
 import type { Session, WorkingDays } from '../types';
 import DayDetailModal from './DayDetailModal';
 import AddSessionModal from './AddSessionModal';
@@ -107,9 +106,9 @@ export default function CalendarView() {
 
     return (
         <div className="space-y-6">
-            <div>
+            <div className="text-center">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">تقویم جلسات</h1>
-                <p className="text-slate-500 mt-1 text-justify">جلسات مشاوره خود را در این تقویم مشاهده و مدیریت کنید.</p>
+                <p className="text-slate-500 mt-1">جلسات مشاوره خود را در این تقویم مشاهده و مدیریت کنید.</p>
             </div>
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
                 <div className="flex justify-between items-center mb-4">

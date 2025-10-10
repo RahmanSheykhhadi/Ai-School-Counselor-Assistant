@@ -251,26 +251,24 @@ const AllStudentsView: React.FC<AllStudentsViewProps> = ({ onViewStudent, onNavi
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">لیست کل دانش‌آموزان</h1>
-                    <p className="text-slate-500 mt-1">تعداد کل: {toPersianDigits(students.length)} دانش‌آموز</p>
-                </div>
-                <div className="flex gap-2 flex-wrap justify-center sm:justify-end">
-                     <button onClick={() => setIsAutoAssignModalOpen(true)} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-sm hover:bg-green-600 transition-colors text-sm">
-                        ورود اکسل
-                    </button>
-                    <button onClick={() => setIsAddModalOpen(true)} className="flex items-center bg-sky-500 text-white font-semibold px-3 py-2 rounded-lg shadow-sm hover:bg-sky-600 transition-colors text-sm">
-                        <PlusIcon className="w-4 h-4" />
-                        <span className="mr-2">افزودن</span>
-                    </button>
-                    <button onClick={() => onNavigate('classroom-manager')} className="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-sm hover:bg-indigo-600 transition-colors text-sm">
-                        مدیریت کلاس‌ها
-                    </button>
-                     <button onClick={() => onNavigate('manual-assign')} className="px-4 py-2 bg-amber-500 text-white font-semibold rounded-lg shadow-sm hover:bg-amber-600 transition-colors text-sm">
-                        کلاس‌بندی دستی
-                    </button>
-                </div>
+            <div className="text-center">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">لیست کل دانش‌آموزان</h1>
+                <p className="text-slate-500 mt-1">تعداد کل: {toPersianDigits(students.length)} دانش‌آموز</p>
+            </div>
+            <div className="flex gap-2 flex-wrap justify-center">
+                 <button onClick={() => setIsAutoAssignModalOpen(true)} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-sm hover:bg-green-600 transition-colors text-sm">
+                    ورود اکسل
+                </button>
+                <button onClick={() => setIsAddModalOpen(true)} className="flex items-center bg-sky-500 text-white font-semibold px-3 py-2 rounded-lg shadow-sm hover:bg-sky-600 transition-colors text-sm">
+                    <PlusIcon className="w-4 h-4" />
+                    <span className="mr-2">افزودن</span>
+                </button>
+                <button onClick={() => onNavigate('classroom-manager')} className="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-sm hover:bg-indigo-600 transition-colors text-sm">
+                    مدیریت کلاس‌ها
+                </button>
+                 <button onClick={() => onNavigate('manual-assign')} className="px-4 py-2 bg-amber-500 text-white font-semibold rounded-lg shadow-sm hover:bg-amber-600 transition-colors text-sm">
+                    کلاس‌بندی دستی
+                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl shadow-sm">
@@ -331,7 +329,11 @@ const AllStudentsView: React.FC<AllStudentsViewProps> = ({ onViewStudent, onNavi
             
             {filteredStudents.length === 0 && (
                 <div className="text-center bg-white p-12 rounded-xl shadow-sm">
-                    <p className="text-slate-500">دانش‌آموزی با این مشخصات یافت نشد.</p>
+                    <p className="text-slate-500">
+                        {students.length === 0 
+                            ? 'دانش‌آموزان و کلاس‌ها را وارد کنید.' 
+                            : 'دانش‌آموزی با این مشخصات یافت نشد.'}
+                    </p>
                 </div>
             )}
 

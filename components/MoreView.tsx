@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { View } from '../types';
-import { ChartBarIcon, CogIcon, CalculatorIcon, Bars2Icon, StarIcon, ClipboardDocumentListIcon, UsersIcon, QuestionMarkCircleIcon } from './icons';
+import { ChartBarIcon, CogIcon, CalculatorIcon, Bars2Icon, StarIcon, ClipboardDocumentListIcon, BookIcon, QuestionMarkCircleIcon } from './icons';
 import { useAppContext } from '../context/AppContext';
 
 interface MoreViewProps {
@@ -11,10 +11,10 @@ const allItems: { [key in View]?: { icon: React.FC<any>, title: string } } = {
     'special-students': { icon: StarIcon, title: 'دانش‌آموزان خاص' },
     'counseling-needed-students': { icon: ClipboardDocumentListIcon, title: 'نیازمند مشاوره' },
     'grade-nine-quorum': { icon: CalculatorIcon, title: 'حد نصاب نهم' },
-    'thinking-lifestyle': { icon: UsersIcon, title: 'تفکر و سبک زندگی' },
+    'thinking-lifestyle': { icon: BookIcon, title: 'تفکر و سبک زندگی' },
     'reports': { icon: ChartBarIcon, title: 'گزارشات' },
     'settings': { icon: CogIcon, title: 'تنظیمات' },
-    'help': { icon: QuestionMarkCircleIcon, title: 'راهنما' },
+    'help': { icon: QuestionMarkCircleIcon, title: 'توافق نامه و راهنما' },
 };
 
 const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
@@ -77,7 +77,7 @@ const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
 
   const handleHelpClick = async () => {
     try {
-        const response = await fetch('sca-help.html');
+        const response = await fetch('/sca-help.html');
         if (!response.ok) {
             throw new Error(`Help file not found (status: ${response.status})`);
         }
@@ -94,15 +94,16 @@ const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
             URL.revokeObjectURL(url); // Clean up even if blocked
         }
     } catch (error) {
+        // FIX: Pass the 'unknown' error object as a separate argument to console.error to avoid a type error.
         console.error('Failed to open help file:', error);
-        alert('متاسفانه فایل راهنما یافت نشد. لطفا با پشتیبانی تماس بگیرید.');
+        alert('متاسفانه فایل راهنما یافت نشد.');
     }
   };
 
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className="text-center">
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">بیشتر</h1>
       </div>
 

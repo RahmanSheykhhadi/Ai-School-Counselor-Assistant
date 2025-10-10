@@ -4,7 +4,7 @@ import type { Student, CounselingNeededInfo } from '../types';
 import Modal from './Modal';
 import ProfilePhoto from './ProfilePhoto';
 import { toPersianDigits, verifyPassword, normalizePersianChars } from '../utils/helpers';
-import { EditIcon, LockClosedIcon, TrashIcon, SearchIcon, ClipboardDocumentListIcon, ChevronDownIcon } from './icons';
+import { EditIcon, LockClosedIcon, TrashIcon, SearchIcon, ClipboardDocumentListIcon, ChevronDownIcon, SaveIcon, ArrowRightIcon } from './icons';
 import ConfirmationModal from './ConfirmationModal';
 
 const EditCounselingInfoModal: React.FC<{
@@ -42,7 +42,9 @@ const EditCounselingInfoModal: React.FC<{
                 </div>
                  <div className="flex justify-end space-x-reverse space-x-2 pt-4">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">انصراف</button>
-                    <button type="submit" className="px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600">ذخیره</button>
+                    <button type="submit" title="ذخیره" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
+                        <SaveIcon className="w-6 h-6" />
+                    </button>
                 </div>
             </form>
         </Modal>
@@ -221,9 +223,13 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
     return (
         <div className="space-y-6">
             <div>
-                <button onClick={onBack} className="text-sm text-sky-600 hover:underline mb-2">&larr; بازگشت به بیشتر</button>
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">دانش‌آموزان نیازمند مشاوره</h1>
-                <p className="text-slate-500 mt-1">لیست دانش‌آموزانی که باید برای آن‌ها جلسه مشاوره تنظیم شود.</p>
+                <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
+                    <ArrowRightIcon className="w-6 h-6" />
+                </button>
+                <div className="text-center">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">دانش‌آموزان نیازمند مشاوره</h1>
+                    <p className="text-slate-500 mt-1">لیست دانش‌آموزانی که باید برای آن‌ها جلسه مشاوره تنظیم شود.</p>
+                </div>
             </div>
             
             <div 
