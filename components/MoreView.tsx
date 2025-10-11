@@ -11,7 +11,6 @@ const allItems: { [key in View]?: { icon: React.FC<any>, title: string } } = {
     'special-students': { icon: StarIcon, title: 'دانش‌آموزان خاص' },
     'counseling-needed-students': { icon: ClipboardDocumentListIcon, title: 'نیازمند مشاوره' },
     'grade-nine-quorum': { icon: CalculatorIcon, title: 'حد نصاب نهم' },
-    'thinking-lifestyle': { icon: BookIcon, title: 'تفکر و سبک زندگی' },
     'reports': { icon: ChartBarIcon, title: 'گزارشات' },
     'settings': { icon: CogIcon, title: 'تنظیمات' },
     'help': { icon: QuestionMarkCircleIcon, title: 'توافق نامه و راهنما' },
@@ -19,7 +18,7 @@ const allItems: { [key in View]?: { icon: React.FC<any>, title: string } } = {
 
 const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
   const { appSettings, handleReorderMoreMenu } = useAppContext();
-  const defaultOrder: View[] = ['special-students', 'counseling-needed-students', 'thinking-lifestyle', 'grade-nine-quorum', 'reports', 'settings', 'help'];
+  const defaultOrder: View[] = ['special-students', 'counseling-needed-students', 'grade-nine-quorum', 'reports', 'settings', 'help'];
   
   const getInitialOrder = () => {
       const savedOrder = appSettings.moreMenuOrder || defaultOrder;
@@ -75,28 +74,10 @@ const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
       handleReorderMoreMenu(reorderedViews);
   };
 
-  const handleHelpClick = async () => {
-    try {
-        const response = await fetch('/sca-help.html');
-        if (!response.ok) {
-            throw new Error(`Help file not found (status: ${response.status})`);
-        }
-        const htmlContent = await response.text();
-        const blob = new Blob([htmlContent], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const helpWindow = window.open(url, '_blank');
-        
-        // Good practice for memory management: revoke the object URL after it's loaded.
-        if (helpWindow) {
-            helpWindow.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
-        } else {
-            alert('مرورگر شما مانع از باز شدن پنجره راهنما شد. لطفا pop-up ها را برای این سایت فعال کنید.');
-            URL.revokeObjectURL(url); // Clean up even if blocked
-        }
-    } catch (error) {
-        // FIX: Pass the 'unknown' error object as a separate argument to console.error to avoid a type error.
-        console.error('Failed to open help file:', error);
-        alert('متاسفانه فایل راهنما یافت نشد.');
+  const handleHelpClick = () => {
+    const helpWindow = window.open('/sca-help.html', '_blank');
+    if (!helpWindow) {
+        alert('مرورگر شما مانع از باز شدن پنجره راهنما شد. لطفا pop-up ها را برای این سایت فعال کنید.');
     }
   };
 

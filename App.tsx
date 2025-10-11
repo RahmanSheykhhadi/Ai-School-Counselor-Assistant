@@ -20,11 +20,35 @@ import { ThinkingLifestyleView } from './components/ThinkingLifestyleView';
 import ClassroomManagerView from './components/ClassroomManagerView';
 import { AppLogoIcon } from './components/icons';
 import DisclaimerModal from './components/DisclaimerModal';
+import InstallPwaBanner from './components/InstallPwaBanner';
 
 function AppContent() {
   const { students, appSettings, setAppSettings, setIsArchiveUnlocked, isLoading } = useAppContext();
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<any | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> }) => {
+        // Prevent the default browser prompt
+        e.preventDefault();
+        // Store the event so it can be triggered later.
+        setInstallPrompt(e);
+        // Show our custom install banner if the app is not already installed
+        // @ts-ignore: 'standalone' is a valid but non-standard property for navigator
+        if (!window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone) {
+            setShowInstallBanner(true);
+        }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
+
+    return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
+    };
+  }, []);
+
 
   useEffect(() => {
     const root = document.documentElement;
@@ -70,7 +94,7 @@ function AppContent() {
 
 
   const navigate = (view: View) => {
-    if (['dashboard', 'students', 'calendar', 'more'].includes(view)) {
+    if (['dashboard', 'students', 'calendar', 'thinking-lifestyle', 'more'].includes(view)) {
       setSelectedStudentId(null);
     }
     if(['all-sessions', 'student-detail', 'special-students', 'counseling-needed-students'].includes(currentView)) {
@@ -101,6 +125,28 @@ function AppContent() {
   const handleAcceptDisclaimer = () => {
     setAppSettings(prev => ({ ...prev, hasAcceptedDisclaimer: true }));
   };
+  
+  const handleInstallClick = () => {
+    if (!installPrompt) return;
+    // Show the browser's install prompt
+    installPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    installPrompt.userChoice.then((choiceResult: { outcome: string }) => {
+        if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the A2HS prompt');
+        } else {
+            console.log('User dismissed the A2HS prompt');
+        }
+        // We can't use the prompt again, so clear it.
+        setInstallPrompt(null);
+        setShowInstallBanner(false);
+    });
+  };
+
+  const handleDismissInstallBanner = () => {
+    setShowInstallBanner(false);
+  };
+
 
   const renderCurrentView = () => {
       switch (currentView) {
@@ -127,7 +173,7 @@ function AppContent() {
           case 'grade-nine-quorum':
               return <GradeNineQuorumView onBack={backToMore} />;
           case 'thinking-lifestyle':
-              return <ThinkingLifestyleView onBack={backToMore} />;
+              return <ThinkingLifestyleView />;
           case 'special-students':
               return <SpecialStudentsView onBack={backToMore} />;
           case 'counseling-needed-students':
@@ -156,6 +202,7 @@ function AppContent() {
 
   return (
     <div className="flex flex-col md:flex-row h-full font-sans bg-slate-100" dir="rtl">
+        {showInstallBanner && <InstallPwaBanner onInstall={handleInstallClick} onDismiss={handleDismissInstallBanner} />}
         <Sidebar currentView={currentView} onNavigate={navigate} />
         <div className="flex-1 flex flex-col min-h-0">
             <Header currentView={currentView} />

@@ -6,26 +6,11 @@ interface DisclaimerModalProps {
 
 const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onAccept }) => {
   
-  const handleHelpClick = async (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleHelpClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
-    try {
-        const response = await fetch('/sca-help.html');
-        if (!response.ok) throw new Error(`Help file not found (status: ${response.status})`);
-        
-        const htmlContent = await response.text();
-        const blob = new Blob([htmlContent], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const helpWindow = window.open(url, '_blank');
-        
-        if (helpWindow) {
-            helpWindow.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
-        } else {
-            alert('مرورگر شما مانع از باز شدن پنجره راهنما شد. لطفا pop-up ها را برای این سایت فعال کنید.');
-            URL.revokeObjectURL(url);
-        }
-    } catch (error) {
-        console.error('Failed to open help file:', error);
-        alert('متاسفانه فایل راهنما یافت نشد.');
+    const helpWindow = window.open('/sca-help.html', '_blank');
+    if (!helpWindow) {
+        alert('مرورگر شما مانع از باز شدن پنجره راهنما شد. لطفا pop-up ها را برای این سایت فعال کنید.');
     }
   };
 

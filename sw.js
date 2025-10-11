@@ -3,7 +3,8 @@ const URLS_TO_CACHE = [
     '/',
     '/index.html',
     '/fonts.css',
-    '/sca-help.html'
+    '/sca-help.html',
+    '/icon.svg'
 ];
 
 const DB_NAME = 'CounselorAppDB';
@@ -91,17 +92,19 @@ self.addEventListener('fetch', event => {
                     icons: []
                 };
 
-                if (iconUrl && (iconUrl.startsWith('/') || iconUrl.startsWith('data:'))) {
-                    let mimeType = 'image/png';
-                    if (iconUrl.startsWith('data:')) {
-                        mimeType = iconUrl.match(/data:([^;]+);/)?.[1] || 'image/png';
-                    } else if (iconUrl.endsWith('.svg')) {
-                        mimeType = 'image/svg+xml';
-                    }
-
+                if (iconUrl && iconUrl.startsWith('data:')) {
+                    // User has set a custom icon. Use it.
+                    // Note: Data URIs in manifests have spotty support for install icons.
+                    const mimeType = iconUrl.match(/data:([^;]+);/)?.[1] || 'image/png';
                     manifest.icons = [
-                        { src: iconUrl, sizes: "192x192", type: mimeType, purpose: "any maskable" },
-                        { src: iconUrl, sizes: "512x512", type: mimeType, purpose: "any maskable" }
+                        { "src": iconUrl, "sizes": "192x192", "type": mimeType, "purpose": "any maskable" },
+                        { "src": iconUrl, "sizes": "512x512", "type": mimeType, "purpose": "any maskable" }
+                    ];
+                } else {
+                    // No custom icon or invalid format, use the default static SVG icon.
+                    // Referencing a static file is more reliable for installation.
+                    manifest.icons = [
+                        { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
                     ];
                 }
 

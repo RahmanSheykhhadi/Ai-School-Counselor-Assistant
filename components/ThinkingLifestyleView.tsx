@@ -395,7 +395,7 @@ const ScoresTab: React.FC<{
     const [selectedForExport, setSelectedForExport] = useState<Set<string>>(new Set());
     
     const observationMap = useMemo(() => new Map(thinkingObservations.map(o => [o.studentId, o])), [thinkingObservations]);
-    const evaluationMap = useMemo(() => new Map(thinkingEvaluations.map(e => [o.studentId, e])), [thinkingEvaluations]);
+    const evaluationMap = useMemo(() => new Map(thinkingEvaluations.map(e => [e.studentId, e])), [thinkingEvaluations]);
     
     const studentsInClass = useMemo(() => {
         if (!selectedClassroomId) return [];
@@ -455,12 +455,11 @@ const ScoresTab: React.FC<{
                 const obs = observationMap.get(s.id);
                 return `<td>${toPersianDigits(obs?.scores[index] || '-')}</td>`;
             }).join('');
-            return `<tr><td style="text-align: right;">${q}</td>${scores}</tr>`;
+            return `<tr><td style="text-align: right; white-space: nowrap; max-width: 300px;">${q}</td>${scores}</tr>`;
         }).join('');
         
         selectedStudents.forEach(s => {
             const obs = observationMap.get(s.id);
-// FIX: Add explicit types to the reduce function's parameters to ensure TypeScript correctly infers the return type as a number.
             const total = obs ? Object.values(obs.scores).reduce((sum, score) => sum + (Number(score) || 0), 0) : 0;
             totalScoresRow += `<td style="font-weight: bold;">${toPersianDigits(total)}</td>`;
 
@@ -474,13 +473,14 @@ const ScoresTab: React.FC<{
             <style>
                 @font-face { font-family: 'B Yekan'; src: url('https://cdn.jsdelivr.net/gh/s-amir-p/F fonts/BYekan/BYekan+.woff2') format('woff2'); }
                 body { font-family: 'B Yekan', sans-serif; }
-                table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+                table { width: 100%; border-collapse: collapse; font-size: 10pt; table-layout: fixed; }
                 th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
                 thead th { background: #f2f2f2; }
+                td:first-child { width: auto !important; } /* Let the first column size itself */
                 @page { size: A4 landscape; margin: 1cm; }
             </style></head><body>
             <h2 style="text-align:center;">فرم مشاهده تفکر و سبک زندگی - کلاس: ${classroomName}</h2>
-            <table><thead><tr><th style="text-align: right;">سوالات</th>${studentHeaders}</tr></thead><tbody>${questionRows}${totalScoresRow}${averageScoresRow}</tbody></table></body></html>`;
+            <table><thead><tr><th style="text-align: right; width: 30%;">سوالات</th>${studentHeaders}</tr></thead><tbody>${questionRows}${totalScoresRow}${averageScoresRow}</tbody></table></body></html>`;
 
         const blob = new Blob([html,], { type: 'text/html' });
         const link = document.createElement('a');
@@ -496,8 +496,7 @@ const ScoresTab: React.FC<{
         
         const studentRows = studentsInClass.map((student, index) => {
             const obs = observationMap.get(student.id);
-            // FIX: Add explicit types to the reduce function's parameters to ensure TypeScript correctly infers the return type as a number.
-            const totalRawScore = obs ? Object.values(obs.scores).reduce((sum, score) => sum + (Number(score) || 0), 0) : 0;
+            const totalRawScore = obs ? Object.values(obs.scores).reduce((sum, score: unknown) => sum + (Number(score) || 0), 0) : 0;
             const observationScoreOutOf5 = (totalRawScore / 100) * 5;
 
             const eva = evaluationMap.get(student.id);
@@ -524,26 +523,26 @@ const ScoresTab: React.FC<{
         const html = `<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>ارزشیابی - ${classroomName}</title>
             <style>
                 @font-face { font-family: 'B Yekan'; src: url('https://cdn.jsdelivr.net/gh/s-amir-p/F fonts/BYekan/BYekan+.woff2') format('woff2'); }
-                body { font-family: 'B Yekan', sans-serif; font-size: 9pt; }
+                body { font-family: 'B Yekan', sans-serif; font-size: 8pt; }
                 table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #ccc; padding: 3px; text-align: center; }
+                th, td { border: 1px solid #ccc; padding: 2px; text-align: center; }
                 thead th { background: #f2f2f2; white-space: nowrap; }
-                .student-cell { text-align: right; display: flex; align-items: center; gap: 4px; }
-                .profile-photo { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+                .student-cell { text-align: right; display: flex; align-items: center; gap: 3px; }
+                .profile-photo { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
                 .icon-placeholder { background: #e9ecef; display:flex; align-items:center; justify-content:center; }
-                .icon-placeholder svg { width: 16px; height: 16px; }
-                @page { size: A4 portrait; margin: 1cm; }
+                .icon-placeholder svg { width: 14px; height: 14px; }
+                @page { size: A4 portrait; margin: 0.5cm; }
             </style></head><body>
             <h2 style="text-align:center;">فرم ارزشیابی تفکر و سبک زندگی - کلاس: ${classroomName}</h2>
             <table><thead>
                 <tr>
-                    <th style="width: 4%;">ردیف</th>
+                    <th style="width: 3%;">#</th>
                     <th style="text-align: right;">دانش‌آموز</th>
-                    <th style="width: 10%;">مشاهده (۵)</th>
-                    <th style="width: 10%;">فعالیت (۵)</th>
-                    <th style="width: 10%;">پروژه (۵)</th>
-                    <th style="width: 10%;">امتحان (۵)</th>
-                    <th style="width: 12%;">نمره نهایی (۲۰)</th>
+                    <th style="width: 8%;">مشاهده (۵)</th>
+                    <th style="width: 8%;">فعالیت (۵)</th>
+                    <th style="width: 8%;">پروژه (۵)</th>
+                    <th style="width: 8%;">امتحان (۵)</th>
+                    <th style="width: 10%;">نمره نهایی (۲۰)</th>
                 </tr>
             </thead><tbody>${studentRows}</tbody></table></body></html>`;
 
@@ -635,8 +634,8 @@ const ScoresTab: React.FC<{
 const ObservationScores: React.FC<any> = ({ student, observation, onObservationChange, handleUpdateThinkingObservation }) => {
     const totalObservationScore = useMemo(() => {
         if (!observation?.scores) return 0;
-// FIX: Add explicit types to the reduce function's parameters to ensure TypeScript correctly infers the return type as a number.
-        return Object.values(observation.scores).reduce((sum, score) => sum + (Number(score) || 0), 0);
+        // FIX: Operator '+' cannot be applied to types 'unknown' and 'unknown'.
+        return Object.values(observation.scores).reduce((sum, score) => sum + Number(score), 0);
     }, [observation]);
 
     const handleScoreAllFive = () => {
@@ -677,13 +676,14 @@ const EvaluationScores: React.FC<any> = ({ student, observation, evaluation, onE
     
     const observationScoreOutOf5 = useMemo(() => {
         if (!observation?.scores) return 0;
-// FIX: Add explicit types to the reduce function's parameters to ensure TypeScript correctly infers the return type as a number.
-        const totalRawScore = Object.values(observation.scores).reduce((sum, score) => sum + (Number(score) || 0), 0);
+        // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
+        const totalRawScore = Object.values(observation.scores).reduce((sum, score) => sum + Number(score), 0);
         return (totalRawScore / 100) * 5;
     }, [observation]);
 
     const finalScore = useMemo(() => {
         if (!evaluation) return observationScoreOutOf5;
+        // FIX: Operator '+' cannot be applied to types 'unknown' and 'unknown'. Also ensures properties are treated as numbers, handling undefined.
         return observationScoreOutOf5 + (Number(evaluation.activityScore) || 0) + (Number(evaluation.projectScore) || 0) + (Number(evaluation.examScore) || 0);
     }, [evaluation, observationScoreOutOf5]);
     
@@ -775,7 +775,7 @@ const EditGroupModal: React.FC<{ group: StudentGroup; onSave: (name: string) => 
 };
 
 
-export const ThinkingLifestyleView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+export const ThinkingLifestyleView: React.FC<{}> = () => {
     const { appSettings, classrooms } = useAppContext();
     const [activeTab, setActiveTab] = useState<Tab>('classes');
     
@@ -802,11 +802,6 @@ export const ThinkingLifestyleView: React.FC<{ onBack: () => void }> = ({ onBack
     return (
         <div className="space-y-6">
             <div className="relative text-center">
-                <div className="absolute top-1/2 -translate-y-1/2 right-0">
-                    <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors">
-                        <ArrowRightIcon className="w-6 h-6" />
-                    </button>
-                </div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">تفکر و سبک زندگی</h1>
             </div>
             

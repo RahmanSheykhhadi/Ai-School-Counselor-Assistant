@@ -583,7 +583,7 @@ const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                       value={localAppSettings.geminiApiKey || ''} 
                                       onChange={handleAppSettingsChange} 
                                       className="w-full p-2 border border-slate-300 rounded-md"
-                                      placeholder="برای فعالسازی خلاصه‌سازی هوشمند"
+                                      placeholder="جهت فعال‌سازی پیشنهاد اقدام و خلاصه‌سازی هوشمند"
                                       dir="ltr"
                                     />
                                 </div>

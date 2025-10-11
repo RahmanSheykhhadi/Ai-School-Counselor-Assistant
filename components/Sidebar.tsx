@@ -1,6 +1,6 @@
 import React from 'react';
 import type { View } from '../types';
-import { HomeIcon, UsersIcon, CalendarIcon, Squares2X2Icon, AppLogoIcon } from './icons';
+import { HomeIcon, UserIcon, CalendarIcon, Squares2X2Icon, AppLogoIcon, BookIcon } from './icons';
 import { useAppContext } from '../context/AppContext';
 import { toPersianDigits } from '../utils/helpers';
 
@@ -11,8 +11,9 @@ interface SidebarProps {
 
 const navItems: { view: View; label: string; icon: React.FC<React.SVGProps<SVGSVGElement>> }[] = [
   { view: 'dashboard', label: 'داشبورد', icon: HomeIcon },
-  { view: 'students', label: 'دانش‌آموزان', icon: UsersIcon },
+  { view: 'students', label: 'کلاس‌ها', icon: UserIcon },
   { view: 'calendar', label: 'تقویم', icon: CalendarIcon },
+  { view: 'thinking-lifestyle', label: 'تفکر', icon: BookIcon },
   { view: 'more', label: 'بیشتر', icon: Squares2X2Icon },
 ];
 
@@ -20,16 +21,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
   const { appSettings } = useAppContext();
   
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => {
-    const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students', 'thinking-lifestyle'].includes(currentView);
+    const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students'].includes(currentView);
     const isStudentsSectionActive = ['students', 'student-detail', 'manual-assign', 'classroom-manager'].includes(currentView);
     
-    let isActive = false;
-    if (item.view === 'more') {
-        isActive = isMoreSectionActive;
-    } else if (item.view === 'students') {
-        isActive = isStudentsSectionActive;
-    } else {
-        isActive = currentView === item.view;
+    let isActive = currentView === item.view;
+    if (item.view === 'more' && isMoreSectionActive) {
+        isActive = true;
+    }
+    if (item.view === 'students' && isStudentsSectionActive) {
+        isActive = true;
     }
     
     return (
@@ -62,16 +62,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
         </div>
         <nav className="flex flex-col space-y-2">
           {navItems.map(item => {
-            const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students', 'thinking-lifestyle'].includes(currentView);
+            const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students'].includes(currentView);
             const isStudentsSectionActive = ['students', 'student-detail', 'manual-assign', 'classroom-manager'].includes(currentView);
             
-            let isActive = false;
-            if (item.view === 'more') {
-                isActive = isMoreSectionActive;
-            } else if (item.view === 'students') {
-                isActive = isStudentsSectionActive;
-            } else {
-                isActive = currentView === item.view;
+            let isActive = currentView === item.view;
+            if (item.view === 'more' && isMoreSectionActive) {
+                isActive = true;
+            }
+            if (item.view === 'students' && isStudentsSectionActive) {
+                isActive = true;
             }
             
             return (

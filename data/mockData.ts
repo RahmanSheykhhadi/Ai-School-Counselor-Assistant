@@ -40,7 +40,7 @@ export const mockAppSettings: AppSettings = {
     sessionPasswordHash: null,
     supabaseUrl: '',
     supabaseAnonKey: '',
-    moreMenuOrder: ['special-students', 'counseling-needed-students', 'thinking-lifestyle', 'grade-nine-quorum', 'reports', 'settings', 'help'],
+    moreMenuOrder: ['special-students', 'counseling-needed-students', 'grade-nine-quorum', 'reports', 'settings', 'help'],
     thinkingClassroomIds: [],
     appIcon: '',
     geminiApiKey: '',

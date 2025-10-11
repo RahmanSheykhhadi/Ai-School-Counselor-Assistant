@@ -10,7 +10,7 @@ interface HeaderProps {
 const getTitle = (view: View): string => {
     const titles: { [key in View]?: string } = {
       'dashboard': 'به همیار مشاور خوش آمدید!',
-      'students': 'دانش‌آموزان',
+      'students': 'کلاس‌ها و دانش‌آموزان',
       'student-detail': 'پرونده دانش‌آموز',
       'calendar': 'تقویم جلسات',
       'reports': 'گزارشات',
