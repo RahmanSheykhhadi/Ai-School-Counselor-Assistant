@@ -6,14 +6,6 @@ interface DisclaimerModalProps {
 
 const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onAccept }) => {
   
-  const handleHelpClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    const helpWindow = window.open('/sca-help.html', '_blank');
-    if (!helpWindow) {
-        alert('مرورگر شما مانع از باز شدن پنجره راهنما شد. لطفا pop-up ها را برای این سایت فعال کنید.');
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-slate-800 bg-opacity-80 flex justify-center items-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg text-center space-y-4">
@@ -25,7 +17,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onAccept }) => {
 
         <p className="text-slate-700 font-semibold">
           من{' '}
-          <a href="/sca-help.html" onClick={handleHelpClick} className="text-sky-600 underline hover:text-sky-700">
+          <a href="https://smartcounseling.netlify.app/sca-help.html" target="_blank" rel="noopener noreferrer" className="text-sky-600 underline hover:text-sky-700">
             توافق‌نامه و راهنما
           </a>
           {' '}را مطالعه کرده و مسئولیت آن را می‌پذیرم.
@@ -33,7 +25,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onAccept }) => {
         
         <p className="text-sm text-slate-500" dir="ltr">
           I have read the{' '}
-          <a href="/sca-help.html" onClick={handleHelpClick} className="text-sky-600 underline hover:text-sky-700">
+          <a href="https://smartcounseling.netlify.app/sca-help.html" target="_blank" rel="noopener noreferrer" className="text-sky-600 underline hover:text-sky-700">
             Agreement and Guide
           </a>
           {' '}and I accept responsibility for it.

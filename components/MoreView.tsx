@@ -74,14 +74,6 @@ const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
       handleReorderMoreMenu(reorderedViews);
   };
 
-  const handleHelpClick = () => {
-    const helpWindow = window.open('/sca-help.html', '_blank');
-    if (!helpWindow) {
-        alert('مرورگر شما مانع از باز شدن پنجره راهنما شد. لطفا pop-up ها را برای این سایت فعال کنید.');
-    }
-  };
-
-
   return (
     <div className="space-y-4">
       <div className="text-center">
@@ -106,13 +98,7 @@ const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
               className={`bg-white rounded-xl shadow-sm p-4 flex items-center justify-between transition-shadow hover:shadow-md group ${dragItem.current === index ? 'opacity-50 border-2 border-dashed border-sky-500' : ''}`}
             >
               <div 
-                onClick={() => {
-                  if (view === 'help') {
-                    handleHelpClick();
-                  } else {
-                    onNavigate(view);
-                  }
-                }} 
+                onClick={() => onNavigate(view)} 
                 className="flex items-center gap-4 flex-grow cursor-pointer"
               >
                 <item.icon className="w-8 h-8 text-slate-600" />

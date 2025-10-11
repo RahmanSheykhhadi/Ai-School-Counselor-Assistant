@@ -600,7 +600,7 @@ const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 </button>
                                 {isSessionTypesExpanded && (
                                     <div className="mt-3 p-4 border rounded-lg bg-slate-50 space-y-3">
-                                        <ul className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                                        <ul className="space-y-2 max-h-48 overflow-y-auto pr-2 force-scrollbar-right">
                                             {localSessionTypes.map((st, index) => (
                                                 <li 
                                                     key={st.id} 

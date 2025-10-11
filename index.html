@@ -61,23 +61,34 @@
     }
     html {
       /* font-size will be set dynamically via JS */
+      scrollbar-color: #94a3b8 #f1f5f9; /* thumb track for Firefox */
+      scrollbar-width: auto;
     }
     #root {
       height: 100%;
     }
     /* For custom scrollbars */
     ::-webkit-scrollbar {
-        width: 8px;
+        width: 12px;
     }
     ::-webkit-scrollbar-track {
-        background: #e2e8f0;
+        background: #f1f5f9; /* slate-100 */
     }
     ::-webkit-scrollbar-thumb {
-        background: #94a3b8;
-        border-radius: 4px;
+        background: #94a3b8; /* slate-400 */
+        border-radius: 6px;
+        border: 3px solid #f1f5f9; /* Creates padding around thumb */
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #64748b;
+        background: #64748b; /* slate-500 */
+    }
+    
+    /* Utility to force scrollbar to the right in RTL layout */
+    .force-scrollbar-right {
+      direction: ltr;
+    }
+    .force-scrollbar-right > * {
+      direction: rtl;
     }
     
     /* Print-specific styles */

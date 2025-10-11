@@ -207,12 +207,14 @@ const GroupingTab: React.FC<{ thinkingClassrooms: any[] }> = ({ thinkingClassroo
         const userIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#9ca3af"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>`;
 
         const groupHtml = localGroupsInClass.map(group => {
+            // FIX: Ensure student objects exist before sorting to prevent accessing 'lastName' on undefined.
             const sortedStudentIds = [...group.studentIds].sort((aId, bId) => {
                 const studentA = studentMap.get(aId);
                 const studentB = studentMap.get(bId);
                 return studentA && studentB ? studentA.lastName.localeCompare(studentB.lastName, 'fa') : 0;
             });
 
+            // FIX: Ensure student object exists before accessing its properties to generate HTML.
             const studentsHtml = sortedStudentIds.map(studentId => {
                 const student = studentMap.get(studentId);
                 if (!student) return '';
@@ -311,7 +313,7 @@ const GroupingTab: React.FC<{ thinkingClassrooms: any[] }> = ({ thinkingClassroo
                             />
                             <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         </div>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                        <div className="space-y-2 max-h-96 overflow-y-auto force-scrollbar-right">
                             {filteredUngroupedStudents.map(student => (
                                 <div
                                     key={student.id}
@@ -634,7 +636,7 @@ const ScoresTab: React.FC<{
 const ObservationScores: React.FC<any> = ({ student, observation, onObservationChange, handleUpdateThinkingObservation }) => {
     const totalObservationScore = useMemo(() => {
         if (!observation?.scores) return 0;
-        // FIX: Operator '+' cannot be applied to types 'unknown' and 'unknown'.
+        // FIX: Operator '+' cannot be applied to types 'unknown' and 'number'.
         return Object.values(observation.scores).reduce((sum, score) => sum + Number(score), 0);
     }, [observation]);
 
@@ -683,7 +685,7 @@ const EvaluationScores: React.FC<any> = ({ student, observation, evaluation, onE
 
     const finalScore = useMemo(() => {
         if (!evaluation) return observationScoreOutOf5;
-        // FIX: Operator '+' cannot be applied to types 'unknown' and 'unknown'. Also ensures properties are treated as numbers, handling undefined.
+        // FIX: Operator '+' cannot be applied to types 'unknown' and 'number'. Also ensures properties are treated as numbers, handling undefined.
         return observationScoreOutOf5 + (Number(evaluation.activityScore) || 0) + (Number(evaluation.projectScore) || 0) + (Number(evaluation.examScore) || 0);
     }, [evaluation, observationScoreOutOf5]);
     

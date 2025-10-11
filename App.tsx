@@ -18,6 +18,7 @@ import CounselingNeededStudentsView from './components/CounselingNeededStudentsV
 import ManualAssignView from './components/ManualAssignView';
 import { ThinkingLifestyleView } from './components/ThinkingLifestyleView';
 import ClassroomManagerView from './components/ClassroomManagerView';
+import { HelpView } from './components/HelpView';
 import { AppLogoIcon } from './components/icons';
 import DisclaimerModal from './components/DisclaimerModal';
 import InstallPwaBanner from './components/InstallPwaBanner';
@@ -182,6 +183,8 @@ function AppContent() {
               return <ManualAssignView onBack={backToStudents} />;
           case 'classroom-manager':
               return <ClassroomManagerView onBack={backToStudents} />;
+          case 'help':
+              return <HelpView onBack={backToMore} />;
           default:
               return <Dashboard onNavigate={navigate} />;
       }
@@ -206,8 +209,10 @@ function AppContent() {
         <Sidebar currentView={currentView} onNavigate={navigate} />
         <div className="flex-1 flex flex-col min-h-0">
             <Header currentView={currentView} />
-            <main className="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto mb-16 md:mb-0">
-                {renderCurrentView()}
+            <main className="flex-1 overflow-y-auto mb-16 md:mb-0 force-scrollbar-right">
+                <div className="p-3 sm:p-6 md:p-8">
+                    {renderCurrentView()}
+                </div>
             </main>
         </div>
     </div>

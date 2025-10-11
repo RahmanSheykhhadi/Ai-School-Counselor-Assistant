@@ -152,8 +152,8 @@ const GradeNineQuorumView: React.FC<GradeNineQuorumViewProps> = ({ onBack }) => 
                         <ArrowRightIcon className="w-6 h-6" />
                     </button>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">محاسبه حد نصاب نهم</h1>
-                <p className="text-slate-500 mt-1">ابزار محاسبه نمره نهایی دروس برای هدایت تحصیلی پایه نهم.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">محاسبه حد نصاب نهم برای انتخاب رشته</h1>
+                <p className="text-red-600 font-bold text-lg mt-2">«حتما باید نمره پایانی نوبت دوم (نمره برگه امتحان نوبت دوم) را وارد کنید»</p>
             </div>
             
             <QuorumCalculator />

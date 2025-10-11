@@ -115,7 +115,7 @@ const StudentSearchModal: React.FC<{
                     className="w-full p-2 border border-slate-300 rounded-md"
                     autoFocus
                 />
-                <ul className="max-h-80 overflow-y-auto space-y-1">
+                <ul className="max-h-80 overflow-y-auto space-y-1 force-scrollbar-right">
                     {filteredStudents.map(student => {
                         const classroom = classrooms.find(c => c.id === student.classroomId);
                         return (

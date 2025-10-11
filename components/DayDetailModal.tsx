@@ -44,45 +44,47 @@ export default function DayDetailModal({ dayMoment, sessions, isWorkingDay, onCl
                     </p>
                 )}
 
-                <div className="space-y-3 max-h-[60vh] overflow-y-auto p-1">
-                    {sortedSessions.length > 0 ? (
-                        sortedSessions.map(session => {
-                            const student = students.find(s => s.id === session.studentId);
-                            const classroom = student ? classrooms.find(c => c.id === student.classroomId) : null;
-                            const sessionType = sessionTypes.find(st => st.id === session.typeId);
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto p-1 force-scrollbar-right">
+                    <div>
+                        {sortedSessions.length > 0 ? (
+                            sortedSessions.map(session => {
+                                const student = students.find(s => s.id === session.studentId);
+                                const classroom = student ? classrooms.find(c => c.id === student.classroomId) : null;
+                                const sessionType = sessionTypes.find(st => st.id === session.typeId);
 
-                            return (
-                                <div key={session.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-bold text-slate-800">
-                                                {student ? `${student.firstName} ${student.lastName}` : 'دانش‌آموز حذف شده'}
-                                            </p>
-                                            <p className="text-xs text-slate-500">
-                                                {classroom ? classroom.name : 'کلاس نامشخص'}
+                                return (
+                                    <div key={session.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-bold text-slate-800">
+                                                    {student ? `${student.firstName} ${student.lastName}` : 'دانش‌آموز حذف شده'}
+                                                </p>
+                                                <p className="text-xs text-slate-500">
+                                                    {classroom ? classroom.name : 'کلاس نامشخص'}
+                                                </p>
+                                            </div>
+                                            <div className="flex space-x-1 space-x-reverse flex-shrink-0">
+                                                <button onClick={() => onEditSession(session)} className="p-1 text-slate-500 hover:text-sky-600" title="ویرایش جلسه"><EditIcon className="w-4 h-4" /></button>
+                                                <button onClick={() => onDeleteSession(session)} className="p-1 text-slate-500 hover:text-red-600" title="حذف جلسه"><TrashIcon className="w-4 h-4" /></button>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-end mt-2">
+                                            <span className="text-xs font-semibold bg-sky-100 text-sky-700 px-2 py-1 rounded-full">
+                                                {sessionType?.name || 'جلسه'}
+                                            </span>
+                                            <p className="text-sm font-semibold text-slate-700">
+                                                ساعت {toPersianDigits(moment(session.date).format('HH:mm'))}
                                             </p>
                                         </div>
-                                        <div className="flex space-x-1 space-x-reverse flex-shrink-0">
-                                            <button onClick={() => onEditSession(session)} className="p-1 text-slate-500 hover:text-sky-600" title="ویرایش جلسه"><EditIcon className="w-4 h-4" /></button>
-                                            <button onClick={() => onDeleteSession(session)} className="p-1 text-slate-500 hover:text-red-600" title="حذف جلسه"><TrashIcon className="w-4 h-4" /></button>
-                                        </div>
                                     </div>
-                                    <div className="flex justify-between items-end mt-2">
-                                        <span className="text-xs font-semibold bg-sky-100 text-sky-700 px-2 py-1 rounded-full">
-                                            {sessionType?.name || 'جلسه'}
-                                        </span>
-                                        <p className="text-sm font-semibold text-slate-700">
-                                            ساعت {toPersianDigits(moment(session.date).format('HH:mm'))}
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        <p className="text-center text-slate-500 py-8">
-                            هیچ جلسه‌ای برای این روز ثبت نشده است.
-                        </p>
-                    )}
+                                );
+                            })
+                        ) : (
+                            <p className="text-center text-slate-500 py-8">
+                                هیچ جلسه‌ای برای این روز ثبت نشده است.
+                            </p>
+                        )}
+                    </div>
                 </div>
                  <div className="flex justify-end pt-4">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">

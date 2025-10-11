@@ -3,7 +3,6 @@ const URLS_TO_CACHE = [
     '/',
     '/index.html',
     '/fonts.css',
-    '/sca-help.html',
     '/icon.svg'
 ];
 
@@ -83,7 +82,7 @@ self.addEventListener('fetch', event => {
 
                 const manifest = {
                     name: "همیار مشاور هوشمند",
-                    short_name: "همیار مشاور",
+                    short_name: "همیar مشاور",
                     description: "یک برنامه جامع برای مدیریت جلسات مشاوره مدرسه با قابلیت‌های هوشمند.",
                     start_url: "/",
                     display: "standalone",
