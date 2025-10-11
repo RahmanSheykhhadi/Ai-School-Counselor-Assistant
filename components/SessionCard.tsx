@@ -49,7 +49,10 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, student, onEdit, onD
                                             {student.firstName} {student.lastName} {classroom && <span className="text-sm font-normal text-slate-500">({classroom.name})</span>}
                                         </p>
                                     )}
-                                    <p className="text-sm text-slate-600 mt-1">{toPersianDigits(formattedDate)}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <p className="text-sm text-slate-600">{toPersianDigits(formattedDate)}</p>
+                                        {sessionType && <span className="font-semibold bg-sky-100 text-sky-800 text-xs px-2 py-1 rounded-full">{sessionType.name}</span>}
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex space-x-1 space-x-reverse sm:hidden">
@@ -57,8 +60,6 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, student, onEdit, onD
                                 <button onClick={() => onDelete(session.id)} className="p-2 text-slate-500 hover:text-red-600 rounded-full hover:bg-slate-100" aria-label="حذف جلسه"><TrashIcon className="w-5 h-5" /></button>
                             </div>
                         </div>
-                        
-                        <span className="font-semibold bg-sky-100 text-sky-800 text-xs px-2 py-1 rounded-full">{sessionType?.name || 'جلسه'}</span>
                         
                         {(session.notes || session.actionItems) && (
                             <button onClick={() => setIsExpanded(!isExpanded)} className="flex items-center text-sm text-sky-600 font-semibold mt-3 mb-2 py-1">

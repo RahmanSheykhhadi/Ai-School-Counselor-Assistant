@@ -76,7 +76,7 @@ const MoreView: React.FC<MoreViewProps> = ({ onNavigate }) => {
 
   return (
     <div className="space-y-4">
-      <div className="text-center">
+      <div className="text-center hidden md:block">
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">بیشتر</h1>
       </div>
 

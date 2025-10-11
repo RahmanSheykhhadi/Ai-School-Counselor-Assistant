@@ -120,8 +120,9 @@ const SupabaseSettings = () => {
                     <input type="password" dir="ltr" value={localSupabaseAnonKey} onChange={e => setLocalSupabaseAnonKey(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md" />
                 </div>
                  <div className="flex justify-center pt-2">
-                    <button onClick={handleSaveCredentials} disabled={isSaving} title="ذخیره و آزمایش اتصال" className="p-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:bg-slate-400">
-                        <SaveIcon className="w-6 h-6" />
+                    <button onClick={handleSaveCredentials} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 disabled:bg-slate-400">
+                        <SaveIcon className="w-5 h-5" />
+                        <span>ذخیره و آزمایش</span>
                     </button>
                 </div>
                 {saveMessage && <p className={`text-sm mt-2 ${saveMessage.type === 'error' ? 'text-red-600' : 'text-green-600'}`}>{saveMessage.text}</p>}
@@ -543,7 +544,7 @@ const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     return (
         <div className="space-y-6">
             <div className="relative text-center">
-                <div className="absolute top-1/2 -translate-y-1/2 right-0">
+                <div className="absolute top-1/2 -translate-y-1/2 right-0 hidden md:block">
                     <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors">
                         <ArrowRightIcon className="w-6 h-6" />
                     </button>
@@ -660,8 +661,9 @@ const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             </div>
                             
                             <div className="flex justify-center pt-4">
-                                <button type="button" onClick={handleSaveGeneral} title="ذخیره تنظیمات عمومی" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
-                                    <SaveIcon className="w-6 h-6" />
+                                <button onClick={handleSaveGeneral} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                                    <SaveIcon className="w-5 h-5" />
+                                    <span>ذخیره</span>
                                 </button>
                             </div>
                         </div>
@@ -738,8 +740,9 @@ const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 </p>
                             </div>
                              <div className="flex justify-center pt-4">
-                                <button type="button" onClick={handleSaveAppearance} title="ذخیره تنظیمات ظاهری" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
-                                    <SaveIcon className="w-6 h-6" />
+                                <button onClick={handleSaveAppearance} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                                    <SaveIcon className="w-5 h-5" />
+                                    <span>ذخیره</span>
                                 </button>
                             </div>
                         </div>
@@ -756,8 +759,9 @@ const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 ))}
                             </div>
                             <div className="flex justify-center pt-4">
-                                <button type="button" onClick={handleSaveWorkingDays} title="ذخیره روزهای کاری" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
-                                    <SaveIcon className="w-6 h-6" />
+                                <button onClick={handleSaveWorkingDays} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                                    <SaveIcon className="w-5 h-5" />
+                                    <span>ذخیره</span>
                                 </button>
                             </div>
                         </div>

@@ -8,7 +8,7 @@ interface ManualAssignViewProps {
   onBack: () => void;
 }
 
-const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) => {
+export const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) => {
     const { students, classrooms, handleBatchUpdateStudentDetails } = useAppContext();
     const [assignments, setAssignments] = useState<Record<string, string>>({});
     const [toastMessage, setToastMessage] = useState('');
@@ -32,34 +32,50 @@ const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) => {
 
         if (updates.length > 0) {
             await handleBatchUpdateStudentDetails(updates);
+            setToastMessage(`${toPersianDigits(updates.length)} دانش‌آموز با موفقیت کلاس‌بندی شدند.`);
+            setTimeout(() => setToastMessage(''), 3000);
             setAssignments({});
-            setToastMessage('تغییرات با موفقیت ذخیره شد.');
+        } else {
+            setToastMessage('هیچ تغییری برای ذخیره وجود ندارد.');
             setTimeout(() => setToastMessage(''), 3000);
         }
     };
-
+    
     return (
         <div className="space-y-6">
             <div>
-                <button onClick={onBack} title="بازگشت به لیست دانش‌آموزان" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
+                <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
                     <ArrowRightIcon className="w-6 h-6" />
                 </button>
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">کلاس‌بندی دستی</h1>
-                <p className="text-slate-500 mt-1">دانش‌آموزان بدون کلاس را به کلاس مربوطه اختصاص دهید.</p>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">کلاس‌بندی دستی</h1>
+                        <p className="text-slate-500 mt-1">دانش‌آموزان بدون کلاس را به کلاس‌های مربوطه اختصاص دهید.</p>
+                    </div>
+                    <button
+                        onClick={handleSaveChanges}
+                        disabled={Object.keys(assignments).length === 0}
+                        className="self-center sm:self-auto flex items-center bg-green-600 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors disabled:bg-slate-400"
+                    >
+                        <SaveIcon className="w-5 h-5" />
+                        <span className="mr-2">ذخیره تغییرات</span>
+                    </button>
+                </div>
             </div>
-            
-            {unassignedStudents.length > 0 ? (
-                <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm">
-                    <div className="space-y-3">
+
+            <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm">
+                {unassignedStudents.length > 0 ? (
+                    <div className="space-y-4">
                         {unassignedStudents.map(student => (
-                            <div key={student.id} className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <div key={student.id} className="flex flex-col sm:flex-row items-center justify-between p-3 bg-slate-50 rounded-lg border">
                                 <div className="flex items-center gap-3">
-                                    <ProfilePhoto photoUrl={student.photoUrl} alt={`${student.firstName} ${student.lastName}`} className="w-10 h-10 rounded-full" />
+                                    <ProfilePhoto photoUrl={student.photoUrl} alt={`${student.firstName} ${student.lastName}`} className="w-12 h-12 rounded-full" />
                                     <div>
                                         <p className="font-semibold text-slate-800">{student.firstName} {student.lastName}</p>
+                                        {student.fatherName && <p className="text-sm text-slate-500">فرزند {student.fatherName}</p>}
                                     </div>
                                 </div>
-                                <div>
+                                <div className="mt-3 sm:mt-0 w-full sm:w-auto sm:max-w-xs">
                                     <select
                                         value={assignments[student.id] || ''}
                                         onChange={(e) => handleAssignmentChange(student.id, e.target.value)}
@@ -74,23 +90,14 @@ const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) => {
                             </div>
                         ))}
                     </div>
-                     <div className="flex justify-end mt-6">
-                        <button
-                            onClick={handleSaveChanges}
-                            disabled={Object.keys(assignments).length === 0}
-                            title="ذخیره تغییرات"
-                            className="p-2 bg-sky-500 text-white font-semibold rounded-lg shadow-sm hover:bg-sky-600 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
-                        >
-                            <SaveIcon className="w-6 h-6" />
-                        </button>
-                    </div>
-                </div>
-            ) : (
-                <div className="text-center bg-white p-12 rounded-xl shadow-sm">
-                    <p className="text-slate-500">تمام دانش‌آموزان دارای کلاس هستند.</p>
-                </div>
-            )}
-             {toastMessage && (
+                ) : (
+                    <p className="text-center text-slate-500 py-8">
+                        تمام دانش‌آموزان کلاس‌بندی شده‌اند.
+                    </p>
+                )}
+            </div>
+
+            {toastMessage && (
                 <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-2 rounded-lg shadow-lg">
                     {toastMessage}
                 </div>
@@ -98,5 +105,3 @@ const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) => {
         </div>
     );
 };
-
-export default ManualAssignView;

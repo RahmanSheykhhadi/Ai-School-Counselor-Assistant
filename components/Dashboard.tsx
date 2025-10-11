@@ -59,7 +59,12 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate 
 
     return (
         <div className="space-y-6">
-            <div className="text-center">
+            <div className="text-center md:hidden">
+                <p className="text-sm text-slate-500 mt-2">
+                    (طراحی: رحمان شیخ‌هادی - مشاور ناحیه کهک؛ <span dir="ltr">{toPersianDigits(appSettings.academicYear)}</span>)
+                </p>
+            </div>
+             <div className="text-center hidden md:block">
                 <div className="flex flex-col items-center justify-center gap-2">
                     <AppLogoIcon iconUrl={appSettings.appIcon} className="w-12 h-12" />
                     <h1 className="text-2xl font-bold text-slate-800">
@@ -76,7 +81,7 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate 
             >
                 <div onClick={() => onNavigate('all-sessions')} className="flex-grow flex items-center cursor-pointer">
                     <div>
-                        <p className="text-base sm:text-lg font-bold text-slate-800">آرشیو جلسات</p>
+                        <p className="text-base sm:text-lg font-bold text-slate-800">بایگانی جلسات</p>
                     </div>
                 </div>
                 <div 

@@ -251,7 +251,10 @@ const AllStudentsView: React.FC<AllStudentsViewProps> = ({ onViewStudent, onNavi
 
     return (
         <div className="space-y-6">
-            <div className="text-center">
+            <div className="text-center md:hidden">
+                <p className="text-slate-500 mt-1">تعداد کل: {toPersianDigits(students.length)} دانش‌آموز</p>
+            </div>
+             <div className="text-center hidden md:block">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">لیست کل دانش‌آموزان</h1>
                 <p className="text-slate-500 mt-1">تعداد کل: {toPersianDigits(students.length)} دانش‌آموز</p>
             </div>

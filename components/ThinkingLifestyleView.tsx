@@ -90,8 +90,9 @@ const ClassesTab: React.FC = () => {
                 ))}
             </div>
             <div className="flex justify-center pt-4">
-                <button onClick={handleSave} title="ذخیره" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
-                    <SaveIcon className="w-6 h-6" />
+                <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                    <SaveIcon className="w-5 h-5" />
+                    <span>ذخیره</span>
                 </button>
             </div>
             {toast && (
@@ -462,9 +463,11 @@ const ScoresTab: React.FC<{
         
         selectedStudents.forEach(s => {
             const obs = observationMap.get(s.id);
+            // FIX: Ensure score is treated as a number during reduction.
             const total = obs ? Object.values(obs.scores).reduce((sum, score) => sum + (Number(score) || 0), 0) : 0;
             totalScoresRow += `<td style="font-weight: bold;">${toPersianDigits(total)}</td>`;
 
+            // FIX: Ensure total is a number for the arithmetic operation.
             const averageOutOf5 = (total / (observationQuestionsCount * 5)) * 5;
             averageScoresRow += `<td style="font-weight: bold;">${toPersianDigits(averageOutOf5.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1'))}</td>`;
         });
@@ -498,13 +501,15 @@ const ScoresTab: React.FC<{
         
         const studentRows = studentsInClass.map((student, index) => {
             const obs = observationMap.get(student.id);
-            const totalRawScore = obs ? Object.values(obs.scores).reduce((sum, score: unknown) => sum + (Number(score) || 0), 0) : 0;
+            // FIX: Ensure score is treated as a number.
+            const totalRawScore = obs ? Object.values(obs.scores).reduce((sum, score) => sum + (Number(score) || 0), 0) : 0;
             const observationScoreOutOf5 = (totalRawScore / 100) * 5;
 
             const eva = evaluationMap.get(student.id);
             const activity = Number(eva?.activityScore || 0);
             const project = Number(eva?.projectScore || 0);
             const exam = Number(eva?.examScore || 0);
+            // FIX: Ensure `final` calculation is performed on numbers.
             const final = observationScoreOutOf5 + activity + project + exam;
             
             const photoContent = student.photoUrl ? `<img src="${student.photoUrl}" class="profile-photo">` : `<div class="profile-photo icon-placeholder">${userIconSvg}</div>`;

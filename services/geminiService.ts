@@ -28,6 +28,7 @@ export const summarizeNotes = async (notes: string, apiKey: string): Promise<str
 
     return response.text;
   } catch (error) {
+    // FIX: Pass the 'unknown' error object as a separate argument to console.error
     console.error("Error summarizing notes:", error);
     return "خطا در ارتباط با سرویس هوش مصنوعی. کلید API خود را بررسی کنید.";
   }
@@ -51,6 +52,7 @@ export const suggestActionItems = async (notes: string, apiKey: string): Promise
     
     return response.text;
   } catch (error) {
+    // FIX: Pass the 'unknown' error object as a separate argument to console.error
     console.error("Error suggesting action items:", error);
     return "خطا در ارتباط با سرویس هوش مصنوعی. کلید API خود را بررسی کنید.";
   }

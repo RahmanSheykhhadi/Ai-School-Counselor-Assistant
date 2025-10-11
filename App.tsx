@@ -15,7 +15,8 @@ import GradeNineQuorumView from './components/GradeNineQuorumView';
 import UpcomingSessionsView from './components/UpcomingSessionsView';
 import SpecialStudentsView from './components/SpecialStudentsView';
 import CounselingNeededStudentsView from './components/CounselingNeededStudentsView';
-import ManualAssignView from './components/ManualAssignView';
+// FIX: Changed to named import to match the fix in ManualAssignView.tsx
+import { ManualAssignView } from './components/ManualAssignView';
 import { ThinkingLifestyleView } from './components/ThinkingLifestyleView';
 import ClassroomManagerView from './components/ClassroomManagerView';
 import { HelpView } from './components/HelpView';
@@ -208,7 +209,7 @@ function AppContent() {
         {showInstallBanner && <InstallPwaBanner onInstall={handleInstallClick} onDismiss={handleDismissInstallBanner} />}
         <Sidebar currentView={currentView} onNavigate={navigate} />
         <div className="flex-1 flex flex-col min-h-0">
-            <Header currentView={currentView} />
+            <Header currentView={currentView} onNavigate={navigate} />
             <main className="flex-1 overflow-y-auto mb-16 md:mb-0 force-scrollbar-right">
                 <div className="p-3 sm:p-6 md:p-8">
                     {renderCurrentView()}

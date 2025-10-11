@@ -106,7 +106,10 @@ export default function CalendarView() {
 
     return (
         <div className="space-y-6">
-            <div className="text-center">
+            <div className="text-center md:hidden">
+                <p className="text-slate-500 mt-1">جلسات مشاوره خود را در این تقویم مشاهده و مدیریت کنید.</p>
+            </div>
+             <div className="text-center hidden md:block">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">تقویم جلسات</h1>
                 <p className="text-slate-500 mt-1">جلسات مشاوره خود را در این تقویم مشاهده و مدیریت کنید.</p>
             </div>

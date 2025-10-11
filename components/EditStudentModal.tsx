@@ -150,8 +150,9 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, onClose, o
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">
                         انصراف
                     </button>
-                    <button type="submit" title="ذخیره تغییرات" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
-                        <SaveIcon className="w-6 h-6" />
+                    <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                        <SaveIcon className="w-5 h-5" />
+                        <span>ذخیره</span>
                     </button>
                 </div>
             </form>

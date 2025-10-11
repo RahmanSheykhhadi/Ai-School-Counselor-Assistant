@@ -77,13 +77,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
               <button
                   key={item.view}
                   onClick={() => onNavigate(item.view)}
-                  className={`flex items-center p-3 rounded-lg transition-colors text-right
+                  className={`flex flex-col items-center justify-center p-3 rounded-lg transition-colors text-center
                       ${isActive
                           ? 'bg-sky-500 text-white shadow-md'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-sky-600'
                       }`}
               >
-                  <item.icon className="w-6 h-6 ml-3" />
+                  <item.icon className="w-6 h-6 mb-1" />
                   <span className="font-semibold">{item.label}</span>
               </button>
             );

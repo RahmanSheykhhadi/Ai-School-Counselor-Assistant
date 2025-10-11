@@ -22,25 +22,30 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
 
     const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
 
+    const pastSessions = useMemo(() => {
+        const now = moment();
+        return sessions.filter(s => moment(s.date).isBefore(now));
+    }, [sessions]);
+
     const filteredSessions = useMemo(() => {
         const normalizedSearch = normalizePersianChars(searchTerm.toLowerCase());
-        if (!normalizedSearch) return sessions;
+        if (!normalizedSearch) return pastSessions;
 
-        return sessions.filter(session => {
+        return pastSessions.filter(session => {
             const student = studentMap.get(session.studentId);
             if (!student) return false;
             
             const studentName = normalizePersianChars(`${student.firstName} ${student.lastName}`).toLowerCase();
             return studentName.includes(normalizedSearch);
         });
-    }, [sessions, searchTerm, studentMap]);
+    }, [pastSessions, searchTerm, studentMap]);
 
     const sessionsByMonth = useMemo(() => {
         const groups: { [key: string]: Session[] } = {};
         filteredSessions
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .forEach(session => {
-                const monthKey = moment(session.date).locale('fa').format('jYYYY jMMMM');
+                const monthKey = moment(session.date).locale('fa').format('jMMMM jYYYY');
                 if (!groups[monthKey]) {
                     groups[monthKey] = [];
                 }
@@ -104,7 +109,7 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-white rounded-xl shadow-sm">
                 <LockClosedIcon className="w-12 h-12 text-slate-400 mb-4" />
-                <h2 className="text-xl font-bold text-slate-800">آرشیو جلسات قفل است</h2>
+                <h2 className="text-xl font-bold text-slate-800">بایگانی جلسات قفل است</h2>
                 <p className="text-slate-500 my-2">برای مشاهده تاریخچه جلسات، لطفا رمز عبور را وارد کنید.</p>
                 <form onSubmit={handlePasswordSubmit} className="mt-4 w-full max-w-xs">
                     <input
@@ -121,7 +126,7 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
                     />
                     {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                     <button type="submit" disabled={isUnlocking} className="mt-3 w-full px-6 py-2 bg-sky-500 text-white font-semibold rounded-lg shadow-sm hover:bg-sky-600 transition-colors disabled:bg-slate-400">
-                        {isUnlocking ? 'در حال بررسی...' : 'باز کردن آرشیو'}
+                        {isUnlocking ? 'در حال بررسی...' : 'باز کردن بایگانی'}
                     </button>
                      <button type="button" onClick={onBack} className="mt-4 text-sm text-sky-600 hover:underline">بازگشت به داشبورد</button>
                 </form>
@@ -135,7 +140,7 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
                  <button onClick={onBack} title="بازگشت به داشبورد" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
                     <ArrowRightIcon className="w-6 h-6" />
                 </button>
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">آرشیو تمام جلسات</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">بایگانی جلسات گذشته</h1>
             </div>
              <div className="relative">
                 <input
@@ -175,7 +180,7 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
                  {Object.keys(sessionsByMonth).length === 0 && (
                     <div className="text-center bg-white p-12 rounded-xl shadow-sm">
                          <p className="text-slate-500">
-                            {searchTerm ? 'هیچ جلسه‌ای برای این دانش‌آموز یافت نشد.' : 'هنوز هیچ جلسه‌ای ثبت نشده است.'}
+                            {searchTerm ? 'هیچ جلسه‌ای برای این دانش‌آموز یافت نشد.' : 'هنوز هیچ جلسه‌ای در گذشته ثبت نشده است.'}
                         </p>
                     </div>
                 )}

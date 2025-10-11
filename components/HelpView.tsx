@@ -37,7 +37,7 @@ export const HelpView: React.FC<HelpViewProps> = ({ onBack }) => {
     return (
         <div className="space-y-6">
             <div className="relative text-center">
-                <div className="absolute top-1/2 -translate-y-1/2 right-0">
+                <div className="absolute top-1/2 -translate-y-1/2 right-0 hidden md:block">
                     <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors">
                         <ArrowRightIcon className="w-6 h-6" />
                     </button>

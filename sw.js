@@ -43,6 +43,21 @@ async function getAppSettings() {
     }
 }
 
+async function dataUrlToResponse(dataUrl) {
+  if (!dataUrl || !dataUrl.startsWith('data:')) {
+    // Fallback to fetching the default static icon if no custom one is set
+    return fetch('/icon.svg');
+  }
+  try {
+    // The fetch API can directly handle data URLs, converting them to a proper Response object
+    const response = await fetch(dataUrl);
+    return response;
+  } catch (e) {
+    console.error('Failed to convert data URL to Response:', e);
+    return fetch('/icon.svg'); // Fallback on error
+  }
+}
+
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -73,52 +88,58 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
+    // Handle dynamic icon requests
+    if (url.pathname === '/app-icon-192.png' || url.pathname === '/app-icon-512.png') {
+      event.respondWith(
+        (async () => {
+          const appSettings = await getAppSettings();
+          // The response will have the correct content-type header from the data URL
+          return dataUrlToResponse(appSettings.appIcon);
+        })()
+      );
+      return; // Prevent falling through to other logic
+    }
+
     // Intercept requests for manifest.json to generate it dynamically.
     if (url.pathname === '/manifest.json') {
         event.respondWith(
             (async () => {
-                const appSettings = await getAppSettings();
-                const iconUrl = appSettings.appIcon;
-
                 const manifest = {
                     name: "همیار مشاور هوشمند",
-                    short_name: "همیar مشاور",
+                    short_name: "همیار مشاور",
                     description: "یک برنامه جامع برای مدیریت جلسات مشاوره مدرسه با قابلیت‌های هوشمند.",
                     start_url: "/",
                     display: "standalone",
                     background_color: "#f1f5f9",
                     theme_color: "#0ea5e9",
-                    icons: []
+                    icons: [
+                        { "src": "/app-icon-192.png", "sizes": "192x192", "purpose": "any maskable" },
+                        { "src": "/app-icon-512.png", "sizes": "512x512", "purpose": "any maskable" }
+                    ]
                 };
-
-                if (iconUrl && iconUrl.startsWith('data:')) {
-                    // User has set a custom icon. Use it.
-                    // Note: Data URIs in manifests have spotty support for install icons.
-                    const mimeType = iconUrl.match(/data:([^;]+);/)?.[1] || 'image/png';
-                    manifest.icons = [
-                        { "src": iconUrl, "sizes": "192x192", "type": mimeType, "purpose": "any maskable" },
-                        { "src": iconUrl, "sizes": "512x512", "type": mimeType, "purpose": "any maskable" }
-                    ];
-                } else {
-                    // No custom icon or invalid format, use the default static SVG icon.
-                    // Referencing a static file is more reliable for installation.
-                    manifest.icons = [
-                        { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
-                    ];
-                }
 
                 return new Response(JSON.stringify(manifest), {
                     headers: { 'Content-Type': 'application/json' }
                 });
             })()
         );
-    } else {
-        // For all other requests, use a cache-first strategy.
+    } else if (event.request.method === 'GET') {
+        // Cache-first, with network fallback and dynamic caching for all GET requests.
+        // This ensures the app works offline after the first visit.
         event.respondWith(
-            caches.match(event.request)
-                .then(response => {
-                    return response || fetch(event.request);
-                })
+            caches.open(CACHE_NAME).then(cache => {
+                return cache.match(event.request).then(cachedResponse => {
+                    const fetchPromise = fetch(event.request).then(networkResponse => {
+                        // Only cache successful responses from http/https protocols
+                        if (networkResponse.ok && event.request.url.startsWith('http')) {
+                            cache.put(event.request, networkResponse.clone());
+                        }
+                        return networkResponse;
+                    });
+                    // Return cached response immediately if available, otherwise wait for network.
+                    return cachedResponse || fetchPromise;
+                });
+            })
         );
     }
 });
