@@ -1,8 +1,9 @@
-const CACHE_NAME = 'counselor-app-cache-v2';
+const CACHE_NAME = 'counselor-app-cache-v3';
 const URLS_TO_CACHE = [
     // Core app shell
     '/',
     '/index.html',
+    '/index.tsx',
     '/fonts.css',
     '/icon.svg',
     
@@ -61,17 +62,22 @@ async function getAppSettings() {
 }
 
 async function dataUrlToResponse(dataUrl) {
+  const fallback = () => caches.match('/icon.svg').then(res => res || fetch('/icon.svg'));
+
   if (!dataUrl || !dataUrl.startsWith('data:')) {
     // Fallback to fetching the default static icon if no custom one is set
-    return fetch('/icon.svg');
+    return fallback();
   }
   try {
     // The fetch API can directly handle data URLs, converting them to a proper Response object
     const response = await fetch(dataUrl);
+    if (!response.ok) {
+        throw new Error('Fetch data URL responded with non-ok status');
+    }
     return response;
   } catch (e) {
     console.error('Failed to convert data URL to Response:', e);
-    return fetch('/icon.svg'); // Fallback on error
+    return fallback(); // Fallback on error
   }
 }
 
