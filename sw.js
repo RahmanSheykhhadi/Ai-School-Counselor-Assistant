@@ -147,19 +147,24 @@ self.addEventListener('fetch', event => {
             })()
         );
     } else if (event.request.method === 'GET') {
-        // Cache-first, with network fallback and dynamic caching for all GET requests.
-        // This ensures the app works offline after the first visit.
+        // Updated cache-first strategy with robust dynamic caching.
         event.respondWith(
             caches.open(CACHE_NAME).then(cache => {
                 return cache.match(event.request).then(cachedResponse => {
                     const fetchPromise = fetch(event.request).then(networkResponse => {
-                        // Only cache successful responses from http/https protocols
-                        if (networkResponse.ok && event.request.url.startsWith('http')) {
-                            cache.put(event.request, networkResponse.clone());
+                        // Check if we received a valid response to cache.
+                        // This now includes successful responses (status 200) and opaque responses,
+                        // which are common for cross-origin resources without CORS and are
+                        // essential for caching all dependencies from CDNs like esm.sh.
+                        if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+                            const responseToCache = networkResponse.clone();
+                            cache.put(event.request, responseToCache);
                         }
                         return networkResponse;
                     });
+
                     // Return cached response immediately if available, otherwise wait for network.
+                    // This ensures offline functionality for already-cached assets.
                     return cachedResponse || fetchPromise;
                 });
             })
