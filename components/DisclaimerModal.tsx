@@ -2,9 +2,10 @@ import React from 'react';
 
 interface DisclaimerModalProps {
   onAccept: () => void;
+  onShowHelp: () => void;
 }
 
-const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onAccept }) => {
+const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onAccept, onShowHelp }) => {
   
   return (
     <div className="fixed inset-0 bg-slate-800 bg-opacity-80 flex justify-center items-center z-50 p-4">
@@ -17,17 +18,17 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onAccept }) => {
 
         <p className="text-slate-700 font-semibold">
           من{' '}
-          <a href="https://smartcounseling.netlify.app/sca-help.html" target="_blank" rel="noopener noreferrer" className="text-sky-600 underline hover:text-sky-700">
+          <button type="button" onClick={onShowHelp} className="text-sky-600 underline hover:text-sky-700">
             توافق‌نامه و راهنما
-          </a>
+          </button>
           {' '}را مطالعه کرده و مسئولیت آن را می‌پذیرم.
         </p>
         
         <p className="text-sm text-slate-500" dir="ltr">
           I have read the{' '}
-          <a href="https://smartcounseling.netlify.app/sca-help.html" target="_blank" rel="noopener noreferrer" className="text-sky-600 underline hover:text-sky-700">
+          <button type="button" onClick={onShowHelp} className="text-sky-600 underline hover:text-sky-700">
             Agreement and Guide
-          </a>
+          </button>
           {' '}and I accept responsibility for it.
         </p>
 

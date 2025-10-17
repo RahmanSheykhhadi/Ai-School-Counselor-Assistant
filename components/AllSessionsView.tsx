@@ -1,12 +1,13 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import moment from 'jalali-moment';
+// FIX: Import useAppContext as a named import.
 import { useAppContext } from '../context/AppContext';
 import { Session, Student } from '../types';
 import SessionCard from './SessionCard';
 import SessionModal from './SessionModal';
 import ConfirmationModal from './ConfirmationModal';
 import { toPersianDigits, verifyPassword, normalizePersianChars } from '../utils/helpers';
-import { SearchIcon, LockClosedIcon, ArrowRightIcon } from './icons';
+import { SearchIcon, LockClosedIcon } from './icons';
 
 export default function AllSessionsView({ onBack }: { onBack: () => void }) {
     const { sessions, students, handleSaveSession, handleDeleteSession, appSettings, isArchiveUnlocked, setIsArchiveUnlocked } = useAppContext();
@@ -136,10 +137,7 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
 
     return (
         <div className="space-y-6">
-            <div>
-                 <button onClick={onBack} title="بازگشت به داشبورد" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
-                    <ArrowRightIcon className="w-6 h-6" />
-                </button>
+            <div className="text-center md:text-right">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">بایگانی جلسات گذشته</h1>
             </div>
              <div className="relative">
@@ -157,7 +155,7 @@ export default function AllSessionsView({ onBack }: { onBack: () => void }) {
                 {Object.entries(sessionsByMonth).map(([month, sessionsInMonth]: [string, Session[]]) => (
                     <div key={month} className="bg-white p-4 rounded-xl shadow-sm">
                         <button onClick={() => toggleMonth(month)} className="w-full flex justify-between items-center text-right font-bold text-lg text-slate-800">
-                            <span>{month}</span>
+                            <span>{toPersianDigits(month)}</span>
                             <span className="text-sm font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
                                 {toPersianDigits(sessionsInMonth.length)} جلسه
                             </span>

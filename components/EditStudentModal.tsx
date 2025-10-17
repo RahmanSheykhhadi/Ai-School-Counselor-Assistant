@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Student } from '../types';
 import Modal from './Modal';
-import { normalizePersianChars } from '../utils/helpers';
+import { normalizePersianChars, sortClassrooms } from '../utils/helpers';
+// FIX: Import useAppContext as a named import.
 import { useAppContext } from '../context/AppContext';
 import { SaveIcon } from './icons';
 
@@ -13,6 +14,8 @@ interface EditStudentModalProps {
 
 const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, onClose, onSave }) => {
     const { classrooms } = useAppContext();
+
+    const sortedClassrooms = useMemo(() => sortClassrooms(classrooms), [classrooms]);
 
     const [formData, setFormData] = useState({
         firstName: student.firstName,
@@ -107,7 +110,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, onClose, o
                             className="w-full p-2 border border-slate-300 rounded-md bg-white focus:ring-sky-500 focus:border-sky-500"
                         >
                             <option value="">-- انتخاب کلاس --</option>
-                            {classrooms.map((c) => (
+                            {sortedClassrooms.map((c) => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>

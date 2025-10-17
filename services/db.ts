@@ -1,9 +1,9 @@
 import { openDB, DBSchema } from 'idb';
-import type { Classroom, Student, Session, SessionType, StudentGroup, WorkingDays, AppSettings, SpecialStudentInfo, CounselingNeededInfo, ThinkingObservation, ThinkingEvaluation } from '../types';
+import type { Classroom, Student, Session, SessionType, StudentGroup, WorkingDays, AppSettings, SpecialStudentInfo, CounselingNeededInfo, ThinkingObservation, ThinkingEvaluation, AttendanceRecord, AttendanceNote } from '../types';
 import { mockAppSettings } from '../data/mockData';
 
 const DB_NAME = 'CounselorAppDB';
-const DB_VERSION = 8;
+const DB_VERSION = 11;
 
 interface MyDB extends DBSchema {
   classrooms: {
@@ -45,6 +45,16 @@ interface MyDB extends DBSchema {
   thinkingEvaluations: {
     key: string; // studentId
     value: ThinkingEvaluation;
+  };
+  attendance: {
+    key: string;
+    value: AttendanceRecord;
+    indexes: { date: string, studentId: string, academicYear: string };
+  };
+  attendanceNotes: {
+    key: string;
+    value: AttendanceNote;
+    indexes: { academicYear: string };
   };
   // Key-value store for single objects
   settings: {
@@ -142,6 +152,30 @@ const dbPromise = openDB<MyDB>(DB_NAME, DB_VERSION, {
         db.createObjectStore('thinkingEvaluations', { keyPath: 'studentId' });
         console.log('DB upgrade to version 8 complete.');
     }
+    if (oldVersion < 9) {
+        console.log('Upgrading DB to version 9...');
+        const attendanceStore = db.createObjectStore('attendance', { keyPath: 'id' });
+        attendanceStore.createIndex('date', 'date');
+        attendanceStore.createIndex('studentId', 'studentId');
+        attendanceStore.createIndex('academicYear', 'academicYear');
+        console.log('DB upgrade to version 9 complete.');
+    }
+    if (oldVersion < 10) {
+        console.log('Upgrading DB to version 10...');
+        const attendanceNotesStore = db.createObjectStore('attendanceNotes', { keyPath: 'id' });
+        attendanceNotesStore.createIndex('academicYear', 'academicYear');
+        console.log('DB upgrade to version 10 complete.');
+    }
+    if (oldVersion < 11) {
+        console.log('Upgrading DB to version 11...');
+        const studentStore = transaction.objectStore('students');
+        // Remove unique constraint on nationalId by recreating the index
+        if (studentStore.indexNames.contains('nationalId')) {
+            studentStore.deleteIndex('nationalId');
+        }
+        studentStore.createIndex('nationalId', 'nationalId', { unique: false });
+        console.log('DB upgrade to version 11 complete.');
+    }
   },
 });
 
@@ -150,7 +184,7 @@ export const getAll = async <T extends keyof MyDB>(storeName: T): Promise<MyDB[T
   return (await dbPromise).getAll(storeName);
 };
 
-export const getAllFromIndex = async <T extends 'classrooms' | 'students' | 'sessions' | 'studentGroups'>(storeName: T, indexName: keyof MyDB[T]['indexes'], query: IDBValidKey | IDBKeyRange): Promise<MyDB[T]['value'][]> => {
+export const getAllFromIndex = async <T extends 'classrooms' | 'students' | 'sessions' | 'studentGroups' | 'attendance' | 'attendanceNotes'>(storeName: T, indexName: keyof MyDB[T]['indexes'], query: IDBValidKey | IDBKeyRange): Promise<MyDB[T]['value'][]> => {
     return (await dbPromise).getAllFromIndex(storeName as string, indexName as string, query);
 }
 
@@ -266,8 +300,14 @@ export const addStudents = async (students: Omit<Student, 'id'>[]): Promise<Stud
     await Promise.all(students.map(async (s) => {
         const id = crypto.randomUUID();
         const newStudent = { ...s, id };
-        await tx.store.add(newStudent);
-        addedStudents.push(newStudent);
+        try {
+            await tx.store.add(newStudent);
+            addedStudents.push(newStudent);
+        } catch (e) {
+            console.error("Failed to add student:", newStudent, e);
+            // This might happen if a nationalId is duplicated.
+            // The transaction will fail, but we log the problematic student.
+        }
     }));
     await tx.done;
     return addedStudents;
@@ -395,10 +435,30 @@ export const putThinkingEvaluations = async (evaluations: ThinkingEvaluation[]) 
     await tx.done;
 };
 
+// Attendance Operations
+export const getAttendanceRecords = async (academicYear: string) => (await dbPromise).getAllFromIndex('attendance', 'academicYear', academicYear);
+export const putAttendanceRecord = async (record: AttendanceRecord) => (await dbPromise).put('attendance', record);
+export const deleteAttendanceRecord = async (id: string) => (await dbPromise).delete('attendance', id);
+export const putAttendanceRecords = async (records: AttendanceRecord[]) => {
+    const db = await dbPromise;
+    const tx = db.transaction('attendance', 'readwrite');
+    await Promise.all(records.map(r => tx.store.put(r)));
+    await tx.done;
+};
+export const getAttendanceNote = async (id: string) => (await dbPromise).get('attendanceNotes', id);
+export const putAttendanceNote = async (note: AttendanceNote) => (await dbPromise).put('attendanceNotes', note);
+export const deleteAttendanceNote = async (id: string) => (await dbPromise).delete('attendanceNotes', id);
+export const putAttendanceNotes = async (notes: AttendanceNote[]) => {
+    const db = await dbPromise;
+    const tx = db.transaction('attendanceNotes', 'readwrite');
+    await Promise.all(notes.map(n => tx.store.put(n)));
+    await tx.done;
+};
+
 // Full Data Management
 export const clearAllData = async () => {
     const db = await dbPromise;
-    const stores: (keyof MyDB)[] = ['classrooms', 'students', 'sessions', 'sessionTypes', 'studentGroups', 'settings', 'specialStudents', 'counselingNeededStudents', 'thinkingObservations', 'thinkingEvaluations'];
+    const stores: (keyof MyDB)[] = ['classrooms', 'students', 'sessions', 'sessionTypes', 'studentGroups', 'settings', 'specialStudents', 'counselingNeededStudents', 'thinkingObservations', 'thinkingEvaluations', 'attendance', 'attendanceNotes'];
     const tx = db.transaction(stores, 'readwrite');
     await Promise.all(stores.map(storeName => tx.objectStore(storeName).clear()));
     await tx.done;
@@ -406,7 +466,7 @@ export const clearAllData = async () => {
 
 export const loadInitialData = async (academicYear: string) => {
     const db = await dbPromise;
-    const tx = db.transaction(['classrooms', 'students', 'sessions', 'sessionTypes', 'studentGroups', 'settings', 'specialStudents', 'counselingNeededStudents', 'thinkingObservations', 'thinkingEvaluations'], 'readonly');
+    const tx = db.transaction(['classrooms', 'students', 'sessions', 'sessionTypes', 'studentGroups', 'settings', 'specialStudents', 'counselingNeededStudents', 'thinkingObservations', 'thinkingEvaluations', 'attendance', 'attendanceNotes'], 'readonly');
 
     const loadedData = await Promise.all([
         tx.objectStore('classrooms').index('academicYear').getAll(academicYear),
@@ -420,7 +480,9 @@ export const loadInitialData = async (academicYear: string) => {
         tx.objectStore('counselingNeededStudents').getAll(),
         tx.objectStore('thinkingObservations').getAll(),
         tx.objectStore('thinkingEvaluations').getAll(),
-        tx.objectStore('settings').get('lastSyncTime')
+        tx.objectStore('settings').get('lastSyncTime'),
+        tx.objectStore('attendance').index('academicYear').getAll(academicYear),
+        tx.objectStore('attendanceNotes').index('academicYear').getAll(academicYear),
     ]);
 
     await tx.done;
@@ -437,6 +499,8 @@ export const loadInitialData = async (academicYear: string) => {
         counselingNeededStudents: loadedData[8] as CounselingNeededInfo[],
         thinkingObservations: loadedData[9] as ThinkingObservation[],
         thinkingEvaluations: loadedData[10] as ThinkingEvaluation[],
-        lastSyncTime: loadedData[11] as string | undefined
+        lastSyncTime: loadedData[11] as string | undefined,
+        attendanceRecords: loadedData[12] as AttendanceRecord[],
+        attendanceNotes: loadedData[13] as AttendanceNote[],
     };
 };

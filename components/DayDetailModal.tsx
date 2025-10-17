@@ -2,6 +2,7 @@ import React from 'react';
 import moment from 'jalali-moment';
 import type { Session } from '../types';
 import Modal from './Modal';
+// FIX: Import useAppContext as a named import.
 import { useAppContext } from '../context/AppContext';
 import { PlusIcon, EditIcon, TrashIcon } from './icons';
 import { toPersianDigits } from '../utils/helpers';

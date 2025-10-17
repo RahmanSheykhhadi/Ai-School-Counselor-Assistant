@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
+// FIX: Import useAppContext as a named import.
 import { useAppContext } from '../context/AppContext';
 import { mockAppSettings, mockWorkingDays } from '../data/mockData';
 import type { Student, BackupData } from '../types';
@@ -65,7 +66,7 @@ export const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file
             classrooms: rawData.classrooms ?? [],
             students: rawData.students ?? [],
             sessions: rawData.sessions ?? [],
-            sessionTypes: rawData.sessionTypes ?? [],
+            sessionTypes: Array.isArray(rawData.sessionTypes) ? rawData.sessionTypes : [],
             studentGroups: rawData.studentGroups ?? [],
             workingDays: rawData.workingDays ?? mockWorkingDays,
             appSettings: finalAppSettings, // Use the merged, robust settings object
@@ -73,6 +74,8 @@ export const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file
             counselingNeededStudents: rawData.counselingNeededStudents ?? [],
             thinkingObservations: rawData.thinkingObservations ?? [],
             thinkingEvaluations: rawData.thinkingEvaluations ?? [],
+            attendanceRecords: rawData.attendanceRecords ?? [],
+            attendanceNotes: rawData.attendanceNotes ?? [],
         };
 
         setProgress(50);
@@ -94,14 +97,30 @@ export const RestoreProgressModal: React.FC<RestoreProgressModalProps> = ({ file
 
         setProgress(75);
         setMessage('در حال ترکیب اطلاعات و عکس‌ها...');
-        const studentsWithRestoredPhotos: Student[] = restoredData.students.map((student: Student) => {
+        const studentsWithRestoredPhotos: Student[] = (restoredData.students as any[]).map(student => {
             if (student.nationalId && photoMap[student.nationalId]) {
                 return { ...student, photoUrl: photoMap[student.nationalId] };
             }
-            return student;
+            return { ...student, photoUrl: '' }; // Ensure photoUrl property exists
         });
         
-        const finalData: BackupData = { ...restoredData, students: studentsWithRestoredPhotos, studentGroups: restoredData.studentGroups };
+        // @google/genai-api FIX: Construct the final data object explicitly to prevent properties
+        // like `sessionTypes` from being accidentally omitted due to spread operator issues.
+        const finalData: BackupData = {
+            classrooms: restoredData.classrooms,
+            students: studentsWithRestoredPhotos,
+            sessions: restoredData.sessions,
+            sessionTypes: restoredData.sessionTypes,
+            studentGroups: restoredData.studentGroups,
+            workingDays: restoredData.workingDays,
+            appSettings: restoredData.appSettings,
+            specialStudents: restoredData.specialStudents,
+            counselingNeededStudents: restoredData.counselingNeededStudents,
+            thinkingObservations: restoredData.thinkingObservations,
+            thinkingEvaluations: restoredData.thinkingEvaluations,
+            attendanceRecords: restoredData.attendanceRecords,
+            attendanceNotes: restoredData.attendanceNotes,
+        };
         
         setProgress(90);
         setMessage('در حال به‌روزرسانی برنامه...');

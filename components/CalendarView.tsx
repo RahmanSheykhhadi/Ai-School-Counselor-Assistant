@@ -116,7 +116,7 @@ export default function CalendarView() {
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                     <button onClick={() => changeMonth(-1)} className="p-2 rounded-full hover:bg-slate-100">&larr;</button>
-                    <span className="text-lg font-bold text-slate-800">{currentMoment.format('jMMMM jYYYY')}</span>
+                    <span className="text-lg font-bold text-slate-800">{toPersianDigits(currentMoment.format('jMMMM jYYYY'))}</span>
                     <button onClick={() => changeMonth(1)} className="p-2 rounded-full hover:bg-slate-100">&rarr;</button>
                 </div>
                 <div className="max-w-sm mx-auto">

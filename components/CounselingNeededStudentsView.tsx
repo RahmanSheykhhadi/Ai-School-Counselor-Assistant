@@ -4,7 +4,7 @@ import type { Student, CounselingNeededInfo } from '../types';
 import Modal from './Modal';
 import ProfilePhoto from './ProfilePhoto';
 import { toPersianDigits, verifyPassword, normalizePersianChars } from '../utils/helpers';
-import { EditIcon, LockClosedIcon, TrashIcon, SearchIcon, ClipboardDocumentListIcon, ChevronDownIcon, SaveIcon, ArrowRightIcon } from './icons';
+import { EditIcon, LockClosedIcon, TrashIcon, SearchIcon, ClipboardDocumentListIcon, ChevronDownIcon, SaveIcon } from './icons';
 import ConfirmationModal from './ConfirmationModal';
 
 const EditCounselingInfoModal: React.FC<{
@@ -42,8 +42,9 @@ const EditCounselingInfoModal: React.FC<{
                 </div>
                  <div className="flex justify-end space-x-reverse space-x-2 pt-4">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">انصراف</button>
-                    <button type="submit" title="ذخیره" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
-                        <SaveIcon className="w-6 h-6" />
+                    <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                        <SaveIcon className="w-5 h-5" />
+                        <span>ذخیره</span>
                     </button>
                 </div>
             </form>
@@ -107,6 +108,7 @@ const StudentSearchModal: React.FC<{
     );
 };
 
+
 const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { 
         students, 
@@ -130,8 +132,7 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
     const counselingNeededData = useMemo(() => {
         return counselingNeededStudents
             .map(info => {
-                 const hasInfo = info.notes && info.notes.trim() !== '';
-                 if (!hasInfo) return null;
+                 if (!info.notes || info.notes.trim() === '') return null;
                  const student = students.find(s => s.id === info.studentId);
                  if (!student) return null;
                  return { student, info };
@@ -182,35 +183,21 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
             setDeletingStudentInfo(null);
         }
     };
-
-    const toggleExpanded = (studentId: string) => {
-        setExpandedStudents(prev => ({
-            ...prev,
-            [studentId]: !prev[studentId],
-        }));
-    };
     
-    const counselingNeededMap = useMemo(() => new Map(counselingNeededStudents.map(s => [s.studentId, s])), [counselingNeededStudents]);
+    const toggleExpanded = (studentId: string) => {
+        setExpandedStudents(prev => ({ ...prev, [studentId]: !prev[studentId] }));
+    };
+
+    const counselingInfoMap = useMemo(() => new Map(counselingNeededStudents.map(s => [s.studentId, s])), [counselingNeededStudents]);
 
     if (isProtectedAndLocked) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-white rounded-xl shadow-sm">
                 <LockClosedIcon className="w-12 h-12 text-slate-400 mb-4" />
                 <h2 className="text-xl font-bold text-slate-800">بخش محافظت شده</h2>
-                <p className="text-slate-500 my-2">برای دسترسی به این بخش، لطفا رمز عبور را وارد کنید.</p>
+                <p className="text-slate-500 my-2">برای دسترسی به این لیست، لطفا رمز عبور را وارد کنید.</p>
                 <form onSubmit={handlePasswordSubmit} className="mt-4 w-full max-w-xs">
-                    <input
-                        type="password"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full p-2 border border-slate-300 rounded-md text-center"
-                        placeholder="رمز عبور"
-                        autoFocus
-                        dir="ltr"
-                        disabled={isUnlocking}
-                    />
+                    <input type="password" inputMode="numeric" pattern="[0-9]*" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md text-center" placeholder="رمز عبور" autoFocus dir="ltr" disabled={isUnlocking} />
                     {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                     <button type="submit" disabled={isUnlocking} className="mt-3 w-full px-6 py-2 bg-sky-500 text-white font-semibold rounded-lg shadow-sm hover:bg-sky-600 transition-colors disabled:bg-slate-400">
                         {isUnlocking ? 'در حال بررسی...' : 'باز کردن'}
@@ -222,38 +209,28 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
     
     return (
         <div className="space-y-6">
-            <div>
-                <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
-                    <ArrowRightIcon className="w-6 h-6" />
-                </button>
-                <div className="text-center">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">دانش‌آموزان نیازمند مشاوره</h1>
-                    <p className="text-slate-500 mt-1">لیست دانش‌آموزانی که باید برای آن‌ها جلسه مشاوره تنظیم شود.</p>
-                </div>
+            <div className="text-center sm:text-right">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">دانش‌آموزان نیازمند مشاوره</h1>
             </div>
             
-            <div 
-                onClick={() => setIsSearchModalOpen(true)}
-                className="w-full p-3 border border-slate-300 rounded-xl bg-white cursor-pointer hover:border-sky-400 flex items-center transition-colors"
-            >
+            <div onClick={() => setIsSearchModalOpen(true)} className="w-full p-3 border border-slate-300 rounded-xl bg-white cursor-pointer hover:border-sky-400 flex items-center transition-colors">
                 <SearchIcon className="w-5 h-5 text-slate-400" />
                 <span className="mr-3 text-slate-500">جستجو برای افزودن یا ویرایش دانش‌آموز...</span>
             </div>
 
             {counselingNeededData.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
                     {counselingNeededData.map(({ student, info }) => {
                         const classroom = classrooms.find(c => c.id === student.classroomId);
                         const isExpanded = !!expandedStudents[student.id];
+
                         return (
                             <div key={student.id} className="bg-white rounded-xl shadow-sm p-4">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex items-center gap-3">
-                                         <ProfilePhoto photoUrl={student.photoUrl} alt={`${student.firstName} ${student.lastName}`} className="w-10 h-10 rounded-full flex-shrink-0" />
+                                        <ProfilePhoto photoUrl={student.photoUrl} alt={`${student.firstName} ${student.lastName}`} className="w-12 h-12 rounded-full flex-shrink-0" />
                                         <div>
-                                            <p className="font-bold text-slate-800">
-                                                {student.firstName} {student.lastName}
-                                            </p>
+                                            <p className="font-bold text-slate-800">{student.firstName} {student.lastName}</p>
                                             <p className="text-sm text-slate-500">{classroom?.name || 'کلاس نامشخص'}</p>
                                         </div>
                                     </div>
@@ -266,15 +243,15 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
                                         </button>
                                     </div>
                                 </div>
-                                <div className="pt-3 border-t border-slate-100">
-                                    <button onClick={() => toggleExpanded(student.id)} className="flex items-center text-sm text-sky-600 font-semibold mb-2 py-1">
-                                        <span>{isExpanded ? 'بستن توضیحات' : 'نمایش توضیحات'}</span>
-                                        <ChevronDownIcon className={`w-4 h-4 mr-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {isExpanded && (
-                                        <p className="text-sm text-slate-500 bg-slate-50 p-2 rounded-md whitespace-pre-wrap text-justify">{info.notes}</p>
-                                    )}
-                                </div>
+                                <button onClick={() => toggleExpanded(student.id)} className="w-full flex items-center text-sm text-sky-600 font-semibold mt-3 pt-3 border-t">
+                                    <span>{isExpanded ? 'بستن توضیحات' : 'نمایش توضیحات'}</span>
+                                    <ChevronDownIcon className={`w-4 h-4 mr-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                                {isExpanded && (
+                                    <div className="mt-2">
+                                        <p className="text-sm text-slate-600 whitespace-pre-wrap text-justify">{info.notes}</p>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
@@ -282,12 +259,7 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
             ) : (
                 <div className="text-center bg-white p-12 rounded-xl shadow-sm">
                     <ClipboardDocumentListIcon className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-500">
-                        هنوز هیچ دانش‌آموزی به این لیست اضافه نشده است.
-                    </p>
-                    <p className="text-sm text-slate-400 mt-4">
-                        برای افزودن دانش‌آموز به این لیست، از کادر جستجوی بالا استفاده کنید.
-                    </p>
+                    <p className="text-slate-500">هیچ دانش‌آموزی در این لیست ثبت نشده است.</p>
                 </div>
             )}
             
@@ -304,7 +276,7 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
             {editingStudent && (
                 <EditCounselingInfoModal 
                     student={editingStudent}
-                    info={counselingNeededMap.get(editingStudent.id)}
+                    info={counselingInfoMap.get(editingStudent.id)}
                     onClose={() => setEditingStudent(null)}
                     onSave={handleSave}
                 />
@@ -313,7 +285,7 @@ const CounselingNeededStudentsView: React.FC<{ onBack: () => void }> = ({ onBack
             {deletingStudentInfo && (
                 <ConfirmationModal
                     title="حذف از لیست نیازمند مشاوره"
-                    message={<p>آیا از حذف <strong>{deletingStudentInfo.firstName} {deletingStudentInfo.lastName}</strong> از این لیست اطمینان دارید؟ (دانش‌آموز از سیستم حذف نخواهد شد، فقط از این لیست پاک می‌شود)</p>}
+                    message={<p>آیا از حذف <strong>{deletingStudentInfo.firstName} {deletingStudentInfo.lastName}</strong> از این لیست اطمینان دارید؟</p>}
                     onConfirm={confirmDelete}
                     onCancel={() => setDeletingStudentInfo(null)}
                     confirmButtonText="بله، حذف کن"

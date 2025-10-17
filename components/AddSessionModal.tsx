@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { Student, Session } from '../types';
 import Modal from './Modal';
 import PersianDatePicker from './PersianDatePicker';
+// FIX: Import useAppContext as a named import.
 import { useAppContext } from '../context/AppContext';
 import { normalizePersianChars } from '../utils/helpers';
 
@@ -64,7 +65,7 @@ export default function AddSessionModal({ preselectedDate, onClose, onSave }: Ad
             classroom ? ` - ${classroom.name}` : ''
         ].join('');
 
-        // FIX: Defer state updates to the next event loop cycle.
+        // @google/genai-api FIX: Defer state updates to the next event loop cycle.
         // This prevents a race condition where the dropdown item (the event target)
         // is removed from the DOM before the document's mousedown listener
         // (in Modal.tsx) can verify that the click occurred inside the modal.

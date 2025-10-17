@@ -1,13 +1,30 @@
-const CACHE_NAME = 'counselor-app-cache-v1';
+const CACHE_NAME = 'counselor-app-cache-v2';
 const URLS_TO_CACHE = [
+    // Core app shell
     '/',
     '/index.html',
     '/fonts.css',
-    '/icon.svg'
+    '/icon.svg',
+    
+    // Styles and Fonts from CDN
+    'https://cdn.tailwindcss.com',
+    'https://cdn.jsdelivr.net/gh/s-amir-p/F fonts/BYekan/BYekan+.woff2',
+    'https://cdn.jsdelivr.net/gh/s-amir-p/F fonts/BYekan/BYekan+ Bold.woff2',
+
+    // JavaScript Libraries from esm.sh CDN (based on importmap)
+    "https://esm.sh/react@18.2.0",
+    "https://esm.sh/react-dom@18.2.0/client",
+    "https://esm.sh/react@18.2.0/jsx-runtime", // For JSX
+    "https://esm.sh/@google/genai@1.20.0",
+    "https://esm.sh/idb@8.0.0",
+    "https://esm.sh/@supabase/supabase-js@2.44.4",
+    "https://esm.sh/jalali-moment@3.3.11",
+    "https://esm.sh/jszip@3.10.1",
+    "https://esm.sh/xlsx@0.18.5"
 ];
 
 const DB_NAME = 'CounselorAppDB';
-const DB_VERSION = 8; // This must match the version in services/db.ts
+const DB_VERSION = 10; // This must match the version in services/db.ts
 const SETTINGS_STORE = 'settings';
 const APP_SETTINGS_KEY = 'appSettings';
 
@@ -62,7 +79,7 @@ self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('Opened cache');
+                console.log('Opened cache and pre-caching all external dependencies.');
                 return cache.addAll(URLS_TO_CACHE);
             })
     );

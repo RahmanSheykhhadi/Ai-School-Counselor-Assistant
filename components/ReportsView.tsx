@@ -52,12 +52,7 @@ export default function ReportsView({ onBack }: { onBack: () => void }) {
     
   return (
     <div className="space-y-6">
-        <div className="relative text-center">
-            <div className="absolute top-1/2 -translate-y-1/2 right-0 hidden md:block">
-                <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors">
-                    <ArrowRightIcon className="w-6 h-6" />
-                </button>
-            </div>
+        <div className="relative text-center hidden md:block">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">گزارشات</h1>
             <p className="text-slate-500 mt-1">تحلیل فراوانی انواع جلسات در بازه‌های زمانی دلخواه.</p>
         </div>

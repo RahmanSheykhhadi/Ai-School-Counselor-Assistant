@@ -77,11 +77,8 @@ const ClassroomManagerView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     return (
         <div className="space-y-6">
             <div>
-                <button onClick={onBack} title="بازگشت به لیست دانش‌آموزان" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
-                    <ArrowRightIcon className="w-6 h-6" />
-                </button>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
+                    <div className="hidden md:block">
                         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">مدیریت و تعریف کلاس‌ها</h1>
                         <p className="text-slate-500 mt-1">کلاس‌های مدرسه را در این بخش تعریف یا ویرایش کنید.</p>
                     </div>

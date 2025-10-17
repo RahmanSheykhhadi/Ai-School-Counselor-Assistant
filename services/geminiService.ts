@@ -4,6 +4,7 @@ const clients = new Map<string, GoogleGenAI>();
 
 const getAiClient = (apiKey: string): GoogleGenAI => {
     if (!clients.has(apiKey)) {
+        // @google/genai-api FIX: Pass apiKey as a named parameter.
         const newClient = new GoogleGenAI({ apiKey });
         clients.set(apiKey, newClient);
     }
@@ -26,9 +27,9 @@ export const summarizeNotes = async (notes: string, apiKey: string): Promise<str
         contents: prompt
     });
 
+    // @google/genai-api FIX: Access the text directly from the response object.
     return response.text;
   } catch (error) {
-    // FIX: Pass the 'unknown' error object as a separate argument to console.error
     console.error("Error summarizing notes:", error);
     return "خطا در ارتباط با سرویس هوش مصنوعی. کلید API خود را بررسی کنید.";
   }
@@ -50,9 +51,9 @@ export const suggestActionItems = async (notes: string, apiKey: string): Promise
         contents: prompt
     });
     
+    // @google/genai-api FIX: Access the text directly from the response object.
     return response.text;
   } catch (error) {
-    // FIX: Pass the 'unknown' error object as a separate argument to console.error
     console.error("Error suggesting action items:", error);
     return "خطا در ارتباط با سرویس هوش مصنوعی. کلید API خود را بررسی کنید.";
   }

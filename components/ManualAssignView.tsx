@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { toPersianDigits } from '../utils/helpers';
+import { toPersianDigits, sortClassrooms } from '../utils/helpers';
 import ProfilePhoto from './ProfilePhoto';
 import { SaveIcon, ArrowRightIcon } from './icons';
 
@@ -12,6 +12,8 @@ export const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) =>
     const { students, classrooms, handleBatchUpdateStudentDetails } = useAppContext();
     const [assignments, setAssignments] = useState<Record<string, string>>({});
     const [toastMessage, setToastMessage] = useState('');
+
+    const sortedClassrooms = useMemo(() => sortClassrooms(classrooms), [classrooms]);
 
     const unassignedStudents = useMemo(() => {
         return students.filter(s => !s.classroomId)
@@ -44,11 +46,8 @@ export const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) =>
     return (
         <div className="space-y-6">
             <div>
-                <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
-                    <ArrowRightIcon className="w-6 h-6" />
-                </button>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
+                    <div className="hidden md:block">
                         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">کلاس‌بندی دستی</h1>
                         <p className="text-slate-500 mt-1">دانش‌آموزان بدون کلاس را به کلاس‌های مربوطه اختصاص دهید.</p>
                     </div>
@@ -82,7 +81,7 @@ export const ManualAssignView: React.FC<ManualAssignViewProps> = ({ onBack }) =>
                                         className="w-full p-2 border border-slate-300 rounded-md bg-white focus:ring-sky-500 focus:border-sky-500"
                                     >
                                         <option value="">-- انتخاب کلاس --</option>
-                                        {classrooms.map(c => (
+                                        {sortedClassrooms.map(c => (
                                             <option key={c.id} value={c.id}>{c.name}</option>
                                         ))}
                                     </select>

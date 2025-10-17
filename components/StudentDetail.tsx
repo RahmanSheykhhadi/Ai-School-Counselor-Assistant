@@ -179,9 +179,6 @@ export default function StudentDetail({ studentId, onBack }: StudentDetailProps)
   return (
     <div className="space-y-6">
       <div>
-        <button onClick={onBack} title="بازگشت به لیست دانش‌آموزان" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
-            <ArrowRightIcon className="w-6 h-6" />
-        </button>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center">
             <div 

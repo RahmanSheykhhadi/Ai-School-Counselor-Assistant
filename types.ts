@@ -1,6 +1,6 @@
 import type { PropsWithChildren, Dispatch, SetStateAction } from 'react';
 
-export type View = 'dashboard' | 'students' | 'student-list' | 'student-detail' | 'calendar' | 'reports' | 'settings' | 'all-sessions' | 'more' | 'grade-nine-quorum' | 'upcoming-sessions' | 'special-students' | 'counseling-needed-students' | 'manual-assign' | 'thinking-lifestyle' | 'classroom-manager' | 'help';
+export type View = 'dashboard' | 'students' | 'student-list' | 'student-detail' | 'calendar' | 'reports' | 'settings' | 'all-sessions' | 'more' | 'grade-nine-quorum' | 'upcoming-sessions' | 'special-students' | 'counseling-needed-students' | 'manual-assign' | 'thinking-lifestyle' | 'help';
 
 export interface Classroom {
   id: string;
@@ -105,6 +105,22 @@ export interface ThinkingEvaluation {
   examScore?: number;     // max 5
 }
 
+export interface AttendanceRecord {
+  id: string; // composite key studentId-YYYY-MM-DD
+  studentId: string;
+  date: string; // YYYY-MM-DD
+  status: 'absent' | 'tardy';
+  academicYear: string;
+}
+
+export interface AttendanceNote {
+  id: string; // composite key classroomId-YYYY-MM-DD
+  classroomId: string;
+  date: string; // YYYY-MM-DD
+  notes: string;
+  academicYear: string;
+}
+
 export type BackupData = {
   classrooms: Classroom[];
   students: Student[];
@@ -112,11 +128,13 @@ export type BackupData = {
   sessionTypes: SessionType[];
   studentGroups: StudentGroup[];
   workingDays: WorkingDays;
-  appSettings: AppSettings;
+  appSettings: Omit<AppSettings, 'supabaseUrl' | 'supabaseAnonKey'>;
   specialStudents: SpecialStudentInfo[];
   counselingNeededStudents: CounselingNeededInfo[];
   thinkingObservations?: ThinkingObservation[];
   thinkingEvaluations?: ThinkingEvaluation[];
+  attendanceRecords?: AttendanceRecord[];
+  attendanceNotes?: AttendanceNote[];
 };
 
 export interface AppContextType {
@@ -131,6 +149,8 @@ export interface AppContextType {
   counselingNeededStudents: CounselingNeededInfo[];
   thinkingObservations: ThinkingObservation[];
   thinkingEvaluations: ThinkingEvaluation[];
+  attendanceRecords: AttendanceRecord[];
+  attendanceNotes: AttendanceNote[];
   setAppSettings: (updaterOrValue: AppSettings | ((prev: AppSettings) => AppSettings)) => Promise<void>;
   setWorkingDays: (updaterOrValue: WorkingDays | ((prev: WorkingDays) => WorkingDays)) => Promise<void>;
   handleAddClassroom: (name: string) => Promise<void>;
@@ -139,7 +159,7 @@ export interface AppContextType {
   handleAddStudent: (student: Omit<Student, 'id' | 'photoUrl' | 'academicYear'>) => Promise<void>;
   handleUpdateStudent: (student: Student) => Promise<void>;
   handleDeleteStudent: (studentId: string) => Promise<void>;
-  handleAddStudentsBatch: (studentsData: Omit<Student, 'id'| 'photoUrl' | 'classroomId' | 'academicYear'>[]) => Promise<void>;
+  handleAddStudentsBatch: (studentsData: Omit<Student, 'id'| 'photoUrl' | 'academicYear'>[]) => Promise<void>;
   handleSaveSession: (session: Session | Omit<Session, 'id' | 'academicYear'>) => Promise<void>;
   handleDeleteSession: (sessionId: string) => Promise<void>;
   handleAddSessionType: (name: string) => Promise<void>;
@@ -154,10 +174,12 @@ export interface AppContextType {
   handleUpdateCounselingNeededInfo: (info: CounselingNeededInfo) => Promise<void>;
   handleUpdateThinkingObservation: (observation: ThinkingObservation) => Promise<void>;
   handleUpdateThinkingEvaluation: (evaluation: ThinkingEvaluation) => Promise<void>;
+  handleSetAttendance: (studentId: string, date: string, status: 'absent' | 'tardy' | 'present') => Promise<void>;
+  handleSetAttendanceNote: (classroomId: string, date: string, notes: string) => Promise<void>;
   handleRestore: (data: BackupData, fromSync?: boolean) => Promise<void>;
   handleBatchUpdateStudentPhotos: (updates: { studentId: string; photoUrl: string }[]) => Promise<void>;
   handleBatchUpdateStudentClassrooms: (updates: { studentId: string; classroomId: string }[]) => Promise<void>;
-  handleBatchUpdateStudentDetails: (updates: { studentId: string; data: { classroomId?: string } }[]) => Promise<void>;
+  handleBatchUpdateStudentDetails: (updates: { studentId: string; data: Partial<Omit<Student, 'id'>> }[]) => Promise<void>;
   handleBatchCreateClassrooms: (classroomsToCreate: { name: string }[]) => Promise<Classroom[]>;
   handleNormalizeChars: () => Promise<void>;
   handlePrependZero: () => Promise<void>;
@@ -170,6 +192,8 @@ export interface AppContextType {
   isLoading: boolean;
   calendarTargetDate: Date | null;
   setCalendarTargetDate: Dispatch<SetStateAction<Date | null>>;
+  helpScrollTarget: string | null;
+  setHelpScrollTarget: Dispatch<SetStateAction<string | null>>;
   // Supabase related
   supabaseUser: any;
   supabaseLogin: (email: string, password: string) => Promise<{ error: any }>;

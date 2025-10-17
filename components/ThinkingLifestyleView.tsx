@@ -1,11 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { ArrowRightIcon, PlusIcon, TrashIcon, PrintIcon, SaveIcon, ChevronDownIcon, SearchIcon, Bars2Icon, EditIcon } from './icons';
-import { Student, StudentGroup, ThinkingObservation, ThinkingEvaluation } from '../types';
+import { ArrowRightIcon, PlusIcon, TrashIcon, PrintIcon, SaveIcon, ChevronDownIcon, SearchIcon, Bars2Icon, EditIcon, ArrowsRightLeftIcon } from './icons';
+import { Student, StudentGroup, ThinkingObservation, ThinkingEvaluation, AttendanceRecord, AttendanceNote, Classroom } from '../types';
 import ProfilePhoto from './ProfilePhoto';
 import { toPersianDigits, normalizePersianChars } from '../utils/helpers';
 import Modal from './Modal';
 import ConfirmationModal from './ConfirmationModal';
+import PersianDatePicker from './PersianDatePicker';
+import moment from 'jalali-moment';
+
 
 const observationQuestionsCount = 20;
 
@@ -33,13 +36,13 @@ const OBSERVATION_QUESTIONS = [
 ];
 
 
-type Tab = 'classes' | 'grouping' | 'observation' | 'evaluation';
+type Tab = 'classes' | 'grouping' | 'observation' | 'evaluation' | 'attendance';
 
 // Re-usable Tab Button Component
 const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
     <button
         onClick={onClick}
-        className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${
+        className={`px-2 py-2 text-sm font-semibold rounded-md transition-colors ${
             active
                 ? 'bg-sky-500 text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -105,7 +108,7 @@ const ClassesTab: React.FC = () => {
 };
 
 // Tab 2: Grouping
-const GroupingTab: React.FC<{ thinkingClassrooms: any[] }> = ({ thinkingClassrooms }) => {
+const GroupingTab: React.FC<{ thinkingClassrooms: Classroom[] }> = ({ thinkingClassrooms }) => {
     const { students, studentGroups, handleSaveGroup, handleUpdateGroup, handleDeleteGroup, handleMoveStudentToGroup, handleReorderStudentGroups } = useAppContext();
     const [selectedClassroomId, setSelectedClassroomId] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -119,9 +122,40 @@ const GroupingTab: React.FC<{ thinkingClassrooms: any[] }> = ({ thinkingClassroo
     const dragGroupIndex = useRef<number | null>(null);
     const dragOverGroupIndex = useRef<number | null>(null);
     
+    const [movingStudent, setMovingStudent] = useState<{ student: Student; sourceGroupId: string | null; anchorEl: HTMLElement } | null>(null);
+    const moveMenuRef = useRef<HTMLDivElement>(null);
+
+    const handleMoveClick = (student: Student, sourceGroupId: string | null, event: React.MouseEvent) => {
+        event.stopPropagation();
+        setMovingStudent({ student, sourceGroupId, anchorEl: event.currentTarget as HTMLElement });
+    };
+
+    const handleCloseMoveMenu = () => {
+        setMovingStudent(null);
+    };
+
+    const handleSelectMoveDestination = (destinationGroupId: string | null) => {
+        if (movingStudent) {
+            handleMoveStudentToGroup(movingStudent.student.id, movingStudent.sourceGroupId, destinationGroupId);
+        }
+        handleCloseMoveMenu();
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (movingStudent && moveMenuRef.current && !moveMenuRef.current.contains(event.target as Node)) {
+                handleCloseMoveMenu();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [movingStudent]);
+
     const studentsInClass = useMemo(() => {
         return students.filter(s => s.classroomId === selectedClassroomId);
     }, [students, selectedClassroomId]);
+
+    const studentMap = useMemo(() => new Map(studentsInClass.map(s => [s.id, s])), [studentsInClass]);
 
     const groupsInClass = useMemo(() => {
         return studentGroups
@@ -203,19 +237,16 @@ const GroupingTab: React.FC<{ thinkingClassrooms: any[] }> = ({ thinkingClassroo
 
     const handleExportHtml = () => {
         const classroomName = thinkingClassrooms.find(c => c.id === selectedClassroomId)?.name || 'کلاس';
-        const studentMap = new Map(studentsInClass.map(s => [s.id, s]));
 
         const userIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#9ca3af"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>`;
 
         const groupHtml = localGroupsInClass.map(group => {
-            // FIX: Ensure student objects exist before sorting to prevent accessing 'lastName' on undefined.
             const sortedStudentIds = [...group.studentIds].sort((aId, bId) => {
                 const studentA = studentMap.get(aId);
                 const studentB = studentMap.get(bId);
-                return studentA && studentB ? studentA.lastName.localeCompare(studentB.lastName, 'fa') : 0;
+                return (studentA && studentB) ? studentA.lastName.localeCompare(studentB.lastName, 'fa') : 0;
             });
 
-            // FIX: Ensure student object exists before accessing its properties to generate HTML.
             const studentsHtml = sortedStudentIds.map(studentId => {
                 const student = studentMap.get(studentId);
                 if (!student) return '';
@@ -325,6 +356,13 @@ const GroupingTab: React.FC<{ thinkingClassrooms: any[] }> = ({ thinkingClassroo
                                     <input type="checkbox" checked={selectedUngroupedIds.has(student.id)} onChange={() => handleUngroupedSelection(student.id)} className="h-4 w-4 rounded" />
                                     <ProfilePhoto photoUrl={student.photoUrl} alt={student.firstName} className="w-6 h-6 rounded-full" />
                                     <label className="text-sm flex-grow cursor-pointer" onClick={() => handleUngroupedSelection(student.id)}>{student.firstName} {student.lastName}</label>
+                                    <button
+                                        onClick={(e) => handleMoveClick(student, null, e)}
+                                        className="p-1 text-slate-400 hover:text-sky-600 cursor-pointer"
+                                        title="انتقال دانش‌آموز"
+                                    >
+                                        <ArrowsRightLeftIcon className="w-4 h-4" />
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -352,7 +390,7 @@ const GroupingTab: React.FC<{ thinkingClassrooms: any[] }> = ({ thinkingClassroo
                             </div>
                             <div className="space-y-2">
                                 {[...group.studentIds]
-                                .map(id => students.find(s => s.id === id))
+                                .map(id => studentMap.get(id))
                                 .filter((s): s is Student => !!s)
                                 .sort((a,b) => a.lastName.localeCompare(b.lastName, 'fa'))
                                 .map(student => {
@@ -364,7 +402,14 @@ const GroupingTab: React.FC<{ thinkingClassrooms: any[] }> = ({ thinkingClassroo
                                             className="p-2 bg-sky-50 rounded-md cursor-grab flex items-center gap-2"
                                         >
                                             <ProfilePhoto photoUrl={student.photoUrl} alt={student.firstName} className="w-6 h-6 rounded-full" />
-                                            <span className="text-sm">{student.firstName} {student.lastName}</span>
+                                            <span className="text-sm flex-grow">{student.firstName} {student.lastName}</span>
+                                            <button
+                                                onClick={(e) => handleMoveClick(student, group.id, e)}
+                                                className="p-1 text-slate-500 hover:text-sky-700 cursor-pointer"
+                                                title="انتقال دانش‌آموز"
+                                            >
+                                                <ArrowsRightLeftIcon className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     );
                                 })}
@@ -373,12 +418,312 @@ const GroupingTab: React.FC<{ thinkingClassrooms: any[] }> = ({ thinkingClassroo
                     ))}
                 </div>
             )}
+            {movingStudent && (
+                <div
+                    ref={moveMenuRef}
+                    className="fixed z-20 bg-white rounded-md shadow-lg border p-2"
+                    style={{
+                        top: `${movingStudent.anchorEl.getBoundingClientRect().bottom + 2}px`,
+                        left: `${movingStudent.anchorEl.getBoundingClientRect().left}px`,
+                        minWidth: '150px',
+                    }}
+                >
+                    <div className="font-bold text-sm mb-2 border-b pb-1 text-slate-600">انتقال "{movingStudent.student.firstName}" به:</div>
+                    <ul className="space-y-1 max-h-48 overflow-y-auto">
+                        {movingStudent.sourceGroupId !== null && (
+                            <li>
+                                <button
+                                    onClick={() => handleSelectMoveDestination(null)}
+                                    className="w-full text-right p-1.5 text-sm rounded-md hover:bg-slate-100 flex items-center gap-2"
+                                >
+                                    <TrashIcon className="w-4 h-4 text-red-500" />
+                                    <span>گروه‌بندی نشده</span>
+                                </button>
+                            </li>
+                        )}
+                        {localGroupsInClass.filter(g => g.id !== movingStudent.sourceGroupId).map(group => (
+                            <li key={group.id}>
+                                <button
+                                    onClick={() => handleSelectMoveDestination(group.id)}
+                                    className="w-full text-right p-1.5 text-sm rounded-md hover:bg-slate-100"
+                                >
+                                    {group.name}
+                                </button>
+                            </li>
+                        ))}
+                         {localGroupsInClass.filter(g => g.id !== movingStudent.sourceGroupId).length === 0 && movingStudent.sourceGroupId === null && (
+                            <div className="p-1.5 text-xs text-slate-500">گروه دیگری برای انتقال وجود ندارد.</div>
+                        )}
+                    </ul>
+                </div>
+            )}
             {isAddModalOpen && <AddGroupModal onAdd={handleAddGroup} onClose={() => setIsAddModalOpen(false)} />}
             {editingGroup && <EditGroupModal group={editingGroup} onClose={() => setEditingGroup(null)} onSave={(newName) => { handleUpdateGroup({ ...editingGroup, name: newName }); setEditingGroup(null); }} />}
             {groupToDelete && <ConfirmationModal title="حذف گروه" message={<p>آیا از حذف گروه <strong>{groupToDelete.name}</strong> اطمینان دارید؟ دانش‌آموزان آن به لیست گروه‌بندی نشده منتقل می‌شوند.</p>} onConfirm={confirmDeleteGroup} onCancel={() => setGroupToDelete(null)} confirmButtonText="بله، حذف کن" />}
         </div>
     );
 };
+
+// Tab 5: Attendance
+const AttendanceTab: React.FC<{ thinkingClassrooms: Classroom[] }> = ({ thinkingClassrooms }) => {
+    const { students, attendanceRecords, handleSetAttendance, appSettings, classrooms } = useAppContext();
+    
+    const [selectedClassroomId, setSelectedClassroomId] = useState('');
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+    const searchRef = useRef<HTMLDivElement>(null);
+    const dateString = moment(selectedDate).format('YYYY-MM-DD');
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+                setIsSearchFocused(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
+    
+    const studentsInClass = useMemo(() => {
+        if (!selectedClassroomId) return [];
+        return students.filter(s => s.classroomId === selectedClassroomId);
+    }, [selectedClassroomId, students]);
+
+    const absentTardyRecords = useMemo(() => {
+        return attendanceRecords.filter(r => r.date === dateString && r.academicYear === appSettings.academicYear);
+    }, [attendanceRecords, dateString, appSettings.academicYear]);
+
+    const absentTardyStudents = useMemo(() => {
+        const studentIdsWithRecords = new Set(absentTardyRecords.map(r => r.studentId));
+        return students
+            .filter(s => studentIdsWithRecords.has(s.id))
+            .sort((a,b) => a.lastName.localeCompare(b.lastName, 'fa'));
+    }, [absentTardyRecords, students]);
+
+    const searchResults = useMemo(() => {
+        if (!searchTerm.trim()) return [];
+        const absentTardyIds = new Set(absentTardyStudents.map(s => s.id));
+        const normalizedSearch = normalizePersianChars(searchTerm.toLowerCase());
+        return studentsInClass
+            .filter(s => !absentTardyIds.has(s.id)) // Only show students not already on the list
+            .filter(s => normalizePersianChars(`${s.firstName} ${s.lastName}`).toLowerCase().includes(normalizedSearch));
+    }, [searchTerm, studentsInClass, absentTardyStudents]);
+
+    const handleSet = (studentId: string, status: 'absent' | 'tardy') => {
+        handleSetAttendance(studentId, dateString, status);
+        setSearchTerm('');
+        setIsSearchFocused(false);
+    };
+    
+    return (
+        <div className="space-y-4">
+            <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                <div>
+                    <label htmlFor="classroom-select-attendance" className="block text-sm font-medium text-slate-700 mb-1">انتخاب کلاس:</label>
+                    <select id="classroom-select-attendance" value={selectedClassroomId} onChange={e => setSelectedClassroomId(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md bg-white">
+                        <option value="">-- یک کلاس را انتخاب کنید --</option>
+                        {thinkingClassrooms.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                </div>
+                <div className="flex items-end gap-2">
+                    <div className="flex-grow">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">انتخاب تاریخ:</label>
+                        <PersianDatePicker selectedDate={selectedDate} onChange={setSelectedDate} showTime={false} />
+                    </div>
+                    <button onClick={() => setIsExportModalOpen(true)} title="دریافت خروجی" className="p-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 h-[42px]">
+                        <PrintIcon className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+
+            {selectedClassroomId && (
+                <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-4">
+                    <div ref={searchRef} className="relative">
+                         <input 
+                            type="text" 
+                            placeholder="جستجوی دانش‌آموز برای ثبت غیبت/تأخیر..." 
+                            value={searchTerm} 
+                            onChange={e => setSearchTerm(e.target.value)} 
+                            onFocus={() => setIsSearchFocused(true)}
+                            className="w-full p-2 pr-10 border border-slate-300 rounded-md"
+                        />
+                         <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                         {isSearchFocused && searchResults.length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                {searchResults.map(student => (
+                                    <div key={student.id} className="p-2 flex justify-between items-center hover:bg-slate-50">
+                                        <div className="flex items-center gap-2">
+                                            <ProfilePhoto photoUrl={student.photoUrl} alt={student.firstName} className="w-8 h-8 rounded-full" />
+                                            <span>{student.firstName} {student.lastName}</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => handleSet(student.id, 'absent')} className="px-3 py-1 text-xs font-semibold bg-red-100 text-red-700 rounded-md hover:bg-red-200">غیبت</button>
+                                            <button onClick={() => handleSet(student.id, 'tardy')} className="px-3 py-1 text-xs font-semibold bg-amber-100 text-amber-700 rounded-md hover:bg-amber-200">تأخیر</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                         )}
+                    </div>
+                    
+                    <h3 className="text-base font-semibold text-slate-700 pt-2 border-t">لیست غایبین و تأخیری‌ها ({toPersianDigits(absentTardyStudents.length)})</h3>
+                    
+                    <div className="max-h-[50vh] overflow-y-auto space-y-2 force-scrollbar-right pr-1">
+                        {absentTardyStudents.length > 0 ? absentTardyStudents.map(student => {
+                            const record = absentTardyRecords.find(r => r.studentId === student.id);
+                            const classroom = classrooms.find(c => c.id === student.classroomId);
+                            return (
+                                <div key={student.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <ProfilePhoto photoUrl={student.photoUrl} alt={student.firstName} className="w-8 h-8 rounded-full" />
+                                        <span className="text-sm font-semibold text-slate-700">
+                                            {student.firstName} {student.lastName}
+                                            {classroom && <span className="text-xs font-normal text-slate-500 mr-1">({classroom.name})</span>}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {record?.status === 'absent' && <span className="px-3 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">غایب</span>}
+                                        {record?.status === 'tardy' && <span className="px-3 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded-full">تأخیر</span>}
+                                        <button onClick={() => handleSetAttendance(student.id, dateString, 'present')} className="p-1 text-slate-400 hover:text-red-600" title="حذف از لیست"><TrashIcon className="w-5 h-5"/></button>
+                                    </div>
+                                </div>
+                            );
+                        }) : (
+                            <p className="text-center text-slate-500 py-4">موردی برای نمایش وجود ندارد.</p>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {isExportModalOpen && 
+                <AttendanceExportModal 
+                    onClose={() => setIsExportModalOpen(false)}
+                    studentMap={studentMap}
+                    thinkingClassrooms={thinkingClassrooms}
+                />
+            }
+        </div>
+    );
+};
+
+const AttendanceExportModal: React.FC<{
+    onClose: () => void;
+    studentMap: Map<string, Student>;
+    thinkingClassrooms: Classroom[];
+}> = ({ onClose, studentMap, thinkingClassrooms }) => {
+    const { attendanceRecords, appSettings } = useAppContext();
+    const [startDate, setStartDate] = useState(new Date());
+    const [endDate, setEndDate] = useState(new Date());
+
+    const handleExport = () => {
+        const start = moment(startDate).format('YYYY-MM-DD');
+        const end = moment(endDate).format('YYYY-MM-DD');
+
+        const thinkingClassroomIds = new Set(appSettings.thinkingClassroomIds || []);
+        
+        const relevantRecords = attendanceRecords.filter(r => {
+            const student = studentMap.get(r.studentId);
+            return student && thinkingClassroomIds.has(student.classroomId) && r.date >= start && r.date <= end;
+        });
+
+        const recordsByStudent = new Map<string, { absent: string[], tardy: string[] }>();
+        relevantRecords.forEach(record => {
+            if (!recordsByStudent.has(record.studentId)) {
+                recordsByStudent.set(record.studentId, { absent: [], tardy: [] });
+            }
+            const studentRecords = recordsByStudent.get(record.studentId)!;
+            studentRecords[record.status].push(record.date);
+        });
+
+        const studentsByClass = new Map<string, Student[]>();
+        for (const studentId of recordsByStudent.keys()) {
+            const student = studentMap.get(studentId);
+            if (student && thinkingClassroomIds.has(student.classroomId)) {
+                if (!studentsByClass.has(student.classroomId)) {
+                    studentsByClass.set(student.classroomId, []);
+                }
+                studentsByClass.get(student.classroomId)!.push(student);
+            }
+        }
+
+        let htmlContent = '';
+        const sortedClassrooms = [...thinkingClassrooms].sort((a,b) => a.name.localeCompare(b.name, 'fa'));
+        
+        sortedClassrooms.forEach(classroom => {
+            const studentList = studentsByClass.get(classroom.id);
+            if (!studentList || studentList.length === 0) return;
+
+            htmlContent += `<h2 class="classroom-title">${classroom.name}</h2><ul class="student-list">`;
+            
+            studentList.sort((a, b) => a.lastName.localeCompare(b.lastName, 'fa'));
+
+            for (const student of studentList) {
+                const records = recordsByStudent.get(student.id)!;
+                const absentDates = records.absent.sort().map(d => toPersianDigits(moment(d).format('jM/jD'))).join('، ');
+                const tardyDates = records.tardy.sort().map(d => toPersianDigits(moment(d).format('jM/jD'))).join('، ');
+                
+                htmlContent += `<li class="student-item"><strong>${student.firstName} ${student.lastName}:</strong> `;
+                if (absentDates) htmlContent += `<span class="record absent">غیبت: ${absentDates}</span>`;
+                if (tardyDates) htmlContent += `<span class="record tardy">تأخیر: ${tardyDates}</span>`;
+                htmlContent += `</li>`;
+            }
+            htmlContent += '</ul>';
+        });
+
+        const htmlTemplate = `<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>گزارش آماری حضور و غیاب</title>
+            <style>
+                @font-face { font-family: 'B Yekan'; src: url('https://cdn.jsdelivr.net/gh/s-amir-p/F fonts/BYekan/BYekan+.woff2') format('woff2'); }
+                body { font-family: 'B Yekan', sans-serif; line-height: 1.7; }
+                .container { max-width: 800px; margin: auto; padding: 20px; }
+                .header { text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+                .classroom-title { font-size: 1.2em; color: #333; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+                .student-list { list-style: none; padding: 0; }
+                .student-item { padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+                .record { margin-right: 15px; }
+                .absent { color: #d9534f; }
+                .tardy { color: #f0ad4e; }
+                @page { size: A4; margin: 1.5cm; }
+            </style></head><body><div class="container">
+            <div class="header"><h1>گزارش آماری حضور و غیاب</h1><p>از تاریخ ${toPersianDigits(moment(startDate).format('jYYYY/jM/jD'))} تا ${toPersianDigits(moment(endDate).format('jYYYY/jM/jD'))}</p></div>
+            ${htmlContent || '<p style="text-align:center;">موردی برای نمایش در این بازه زمانی یافت نشد.</p>'}
+        </div></body></html>`;
+
+        const blob = new Blob([htmlTemplate], { type: 'text/html' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `attendance-report-${moment().format('jYYYY-jMM-jDD')}.html`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        onClose();
+    };
+
+    return (
+        <Modal onClose={onClose}>
+            <div className="space-y-4">
+                <h2 className="text-xl font-bold">خروجی آماری حضور و غیاب</h2>
+                <p className="text-sm text-slate-500">یک بازه زمانی برای تهیه گزارش انتخاب کنید.</p>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">از تاریخ:</label>
+                    <PersianDatePicker selectedDate={startDate} onChange={setStartDate} showTime={false} />
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">تا تاریخ:</label>
+                    <PersianDatePicker selectedDate={endDate} onChange={setEndDate} showTime={false} />
+                </div>
+                <div className="flex justify-end pt-4 space-x-2 space-x-reverse">
+                    <button onClick={onClose} className="px-4 py-2 bg-slate-200 rounded-md">انصراف</button>
+                    <button onClick={handleExport} className="px-4 py-2 bg-teal-500 text-white rounded-md">تولید گزارش آماری</button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
 
 // Tab 3 & 4: Observation & Evaluation
 const ScoresTab: React.FC<{
@@ -456,18 +801,20 @@ const ScoresTab: React.FC<{
         const questionRows = OBSERVATION_QUESTIONS.map((q, index) => {
             const scores = selectedStudents.map(s => {
                 const obs = observationMap.get(s.id);
-                return `<td>${toPersianDigits(obs?.scores[index] || '-')}</td>`;
+                // @google/genai-api FIX: Use nullish coalescing for safer access to prevent passing undefined to toPersianDigits.
+                const score = obs?.scores[index];
+                const displayScore = score ?? '-';
+                return `<td>${toPersianDigits(displayScore)}</td>`;
             }).join('');
             return `<tr><td style="text-align: right; white-space: nowrap; max-width: 300px;">${q}</td>${scores}</tr>`;
         }).join('');
         
         selectedStudents.forEach(s => {
             const obs = observationMap.get(s.id);
-            // FIX: Ensure score is treated as a number during reduction.
-            const total = obs ? Object.values(obs.scores).reduce((sum, score) => sum + (Number(score) || 0), 0) : 0;
+            // @google/genai-api FIX: Explicitly type accumulator and value in reduce to prevent type errors.
+            const total = obs ? Object.values(obs.scores).reduce((sum: number, score: number) => sum + score, 0) : 0;
             totalScoresRow += `<td style="font-weight: bold;">${toPersianDigits(total)}</td>`;
 
-            // FIX: Ensure total is a number for the arithmetic operation.
             const averageOutOf5 = (total / (observationQuestionsCount * 5)) * 5;
             averageScoresRow += `<td style="font-weight: bold;">${toPersianDigits(averageOutOf5.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1'))}</td>`;
         });
@@ -501,15 +848,14 @@ const ScoresTab: React.FC<{
         
         const studentRows = studentsInClass.map((student, index) => {
             const obs = observationMap.get(student.id);
-            // FIX: Ensure score is treated as a number.
-            const totalRawScore = obs ? Object.values(obs.scores).reduce((sum, score) => sum + (Number(score) || 0), 0) : 0;
+            // @google/genai-api FIX: Explicitly type accumulator and value in reduce to prevent type errors.
+            const totalRawScore = obs ? Object.values(obs.scores).reduce((sum: number, score: number) => sum + score, 0) : 0;
             const observationScoreOutOf5 = (totalRawScore / 100) * 5;
 
             const eva = evaluationMap.get(student.id);
             const activity = Number(eva?.activityScore || 0);
             const project = Number(eva?.projectScore || 0);
             const exam = Number(eva?.examScore || 0);
-            // FIX: Ensure `final` calculation is performed on numbers.
             const final = observationScoreOutOf5 + activity + project + exam;
             
             const photoContent = student.photoUrl ? `<img src="${student.photoUrl}" class="profile-photo">` : `<div class="profile-photo icon-placeholder">${userIconSvg}</div>`;
@@ -638,11 +984,20 @@ const ScoresTab: React.FC<{
     );
 };
 
-const ObservationScores: React.FC<any> = ({ student, observation, onObservationChange, handleUpdateThinkingObservation }) => {
+interface ScoresComponentProps {
+    student: Student;
+    observation: ThinkingObservation | undefined;
+    evaluation: ThinkingEvaluation | undefined;
+    onObservationChange: (studentId: string, questionIndex: number, score: number) => void;
+    onEvaluationChange: (studentId: string, field: keyof Omit<ThinkingEvaluation, 'studentId'>, score: number) => void;
+    handleUpdateThinkingObservation: (observation: ThinkingObservation) => void;
+}
+
+const ObservationScores: React.FC<ScoresComponentProps> = ({ student, observation, onObservationChange, handleUpdateThinkingObservation }) => {
     const totalObservationScore = useMemo(() => {
         if (!observation?.scores) return 0;
-        // FIX: Operator '+' cannot be applied to types 'unknown' and 'number'.
-        return Object.values(observation.scores).reduce((sum, score) => sum + Number(score), 0);
+        // @google/genai-api FIX: Explicitly type accumulator and value in reduce to prevent type errors.
+        return Object.values(observation.scores).reduce((sum: number, score: number) => sum + score, 0);
     }, [observation]);
 
     const handleScoreAllFive = () => {
@@ -679,19 +1034,20 @@ const ObservationScores: React.FC<any> = ({ student, observation, onObservationC
     );
 };
 
-const EvaluationScores: React.FC<any> = ({ student, observation, evaluation, onEvaluationChange }) => {
+const EvaluationScores: React.FC<ScoresComponentProps> = ({ student, observation, evaluation, onEvaluationChange }) => {
     
     const observationScoreOutOf5 = useMemo(() => {
         if (!observation?.scores) return 0;
-        // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
-        const totalRawScore = Object.values(observation.scores).reduce((sum, score) => sum + Number(score), 0);
+        // @google/genai-api FIX: Explicitly type accumulator and value in reduce to prevent type errors.
+        const totalRawScore = Object.values(observation.scores).reduce((sum: number, score: number) => sum + score, 0);
         return (totalRawScore / 100) * 5;
     }, [observation]);
 
     const finalScore = useMemo(() => {
-        if (!evaluation) return observationScoreOutOf5;
-        // FIX: Operator '+' cannot be applied to types 'unknown' and 'number'. Also ensures properties are treated as numbers, handling undefined.
-        return observationScoreOutOf5 + (Number(evaluation.activityScore) || 0) + (Number(evaluation.projectScore) || 0) + (Number(evaluation.examScore) || 0);
+        const activity = Number(evaluation?.activityScore || 0);
+        const project = Number(evaluation?.projectScore || 0);
+        const exam = Number(evaluation?.examScore || 0);
+        return observationScoreOutOf5 + activity + project + exam;
     }, [evaluation, observationScoreOutOf5]);
     
     const formattedFinalScore = finalScore.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
@@ -801,6 +1157,8 @@ export const ThinkingLifestyleView: React.FC<{}> = () => {
                 return <ScoresTab mode="observation" thinkingClassrooms={thinkingClassrooms} />;
             case 'evaluation':
                 return <ScoresTab mode="evaluation" thinkingClassrooms={thinkingClassrooms} />;
+            case 'attendance':
+                return <AttendanceTab thinkingClassrooms={thinkingClassrooms} />;
             default:
                 return null;
         }
@@ -808,15 +1166,16 @@ export const ThinkingLifestyleView: React.FC<{}> = () => {
     
     return (
         <div className="space-y-6">
-            <div className="relative text-center">
+            <div className="relative text-center hidden md:block">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">تفکر و سبک زندگی</h1>
             </div>
             
-            <div className="bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-2 justify-center">
+            <div className="bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-1 justify-center">
                 <TabButton active={activeTab === 'classes'} onClick={() => setActiveTab('classes')}>کلاس‌ها</TabButton>
                 <TabButton active={activeTab === 'grouping'} onClick={() => setActiveTab('grouping')}>گروه‌بندی</TabButton>
                 <TabButton active={activeTab === 'observation'} onClick={() => setActiveTab('observation')}>فرم مشاهده</TabButton>
                 <TabButton active={activeTab === 'evaluation'} onClick={() => setActiveTab('evaluation')}>ارزشیابی</TabButton>
+                <TabButton active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')}>حضور و غیاب</TabButton>
             </div>
             
             <div>{renderContent()}</div>

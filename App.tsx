@@ -15,10 +15,8 @@ import GradeNineQuorumView from './components/GradeNineQuorumView';
 import UpcomingSessionsView from './components/UpcomingSessionsView';
 import SpecialStudentsView from './components/SpecialStudentsView';
 import CounselingNeededStudentsView from './components/CounselingNeededStudentsView';
-// FIX: Changed to named import to match the fix in ManualAssignView.tsx
 import { ManualAssignView } from './components/ManualAssignView';
 import { ThinkingLifestyleView } from './components/ThinkingLifestyleView';
-import ClassroomManagerView from './components/ClassroomManagerView';
 import { HelpView } from './components/HelpView';
 import { AppLogoIcon } from './components/icons';
 import DisclaimerModal from './components/DisclaimerModal';
@@ -30,6 +28,7 @@ function AppContent() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [installPrompt, setInstallPrompt] = useState<any | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showHelpInDisclaimer, setShowHelpInDisclaimer] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> }) => {
@@ -165,7 +164,7 @@ function AppContent() {
           case 'reports':
               return <ReportsView onBack={backToMore} />;
           case 'settings':
-              return <SettingsView onBack={backToMore} />;
+              return <SettingsView onBack={backToMore} onNavigate={navigate} />;
           case 'all-sessions':
               return <AllSessionsView onBack={backToDashboard} />;
           case 'upcoming-sessions':
@@ -182,8 +181,6 @@ function AppContent() {
               return <CounselingNeededStudentsView onBack={backToMore} />;
           case 'manual-assign':
               return <ManualAssignView onBack={backToStudents} />;
-          case 'classroom-manager':
-              return <ClassroomManagerView onBack={backToStudents} />;
           case 'help':
               return <HelpView onBack={backToMore} />;
           default:
@@ -201,7 +198,18 @@ function AppContent() {
   }
   
   if (!appSettings.hasAcceptedDisclaimer) {
-      return <DisclaimerModal onAccept={handleAcceptDisclaimer} />;
+      return (
+        <>
+            {showHelpInDisclaimer && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex justify-center items-center p-2 sm:p-4">
+                    <div className="bg-white rounded-lg h-[90vh] w-[95vw] max-w-4xl overflow-y-auto">
+                         <HelpView onBack={() => setShowHelpInDisclaimer(false)} />
+                    </div>
+                </div>
+            )}
+            <DisclaimerModal onAccept={handleAcceptDisclaimer} onShowHelp={() => setShowHelpInDisclaimer(true)} />
+        </>
+      );
   }
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { View } from '../types';
 import { ChartBarIcon, CogIcon, CalculatorIcon, Bars2Icon, StarIcon, ClipboardDocumentListIcon, BookIcon, QuestionMarkCircleIcon } from './icons';
+// FIX: Import useAppContext as a named import.
 import { useAppContext } from '../context/AppContext';
 
 interface MoreViewProps {

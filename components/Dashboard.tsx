@@ -60,6 +60,12 @@ const Dashboard: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate 
     return (
         <div className="space-y-6">
             <div className="text-center md:hidden">
+                 <div className="flex flex-col items-center justify-center gap-2 mb-2">
+                    <AppLogoIcon iconUrl={appSettings.appIcon} className="w-10 h-10" />
+                    <h1 className="text-xl font-bold text-slate-800">
+                        به همیار مشاور هوشمند خوش آمدید!
+                    </h1>
+                </div>
                 <p className="text-sm text-slate-500 mt-2">
                     (طراحی: رحمان شیخ‌هادی - مشاور ناحیه کهک؛ <span dir="ltr">{toPersianDigits(appSettings.academicYear)}</span>)
                 </p>

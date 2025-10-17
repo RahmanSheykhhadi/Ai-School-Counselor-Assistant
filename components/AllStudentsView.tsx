@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { View, Student, Classroom } from '../types';
-import { toPersianDigits, normalizePersianChars } from '../utils/helpers';
+import { toPersianDigits, normalizePersianChars, sortClassrooms } from '../utils/helpers';
 import { PlusIcon, SearchIcon, PrintIcon } from './icons';
 import AutoAssignModal from './AutoAssignModal';
 import ProfilePhoto from './ProfilePhoto';
@@ -27,6 +27,7 @@ const AddStudentForm: React.FC<AddStudentFormProps> = ({ onAdd, onCancel, classr
     const [mobile, setMobile] = useState('');
     const [classroomId, setClassroomId] = useState('');
 
+    const sortedClassrooms = useMemo(() => sortClassrooms(classrooms), [classrooms]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,7 +71,7 @@ const AddStudentForm: React.FC<AddStudentFormProps> = ({ onAdd, onCancel, classr
                     <label htmlFor="classroomId" className="block text-sm font-medium text-slate-700 mb-1">کلاس</label>
                     <select id="classroomId" value={classroomId} onChange={(e) => setClassroomId(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md bg-white">
                         <option value="">-- بدون کلاس --</option>
-                        {classrooms.map(c => (
+                        {sortedClassrooms.map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                     </select>
@@ -90,6 +91,8 @@ const AllStudentsView: React.FC<AllStudentsViewProps> = ({ onViewStudent, onNavi
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterClassroomId, setFilterClassroomId] = useState('all');
+
+    const sortedClassrooms = useMemo(() => sortClassrooms(classrooms), [classrooms]);
 
     const filteredStudents = useMemo(() => {
         let result = [...students];
@@ -259,15 +262,12 @@ const AllStudentsView: React.FC<AllStudentsViewProps> = ({ onViewStudent, onNavi
                 <p className="text-slate-500 mt-1">تعداد کل: {toPersianDigits(students.length)} دانش‌آموز</p>
             </div>
             <div className="flex gap-2 flex-wrap justify-center">
-                 <button onClick={() => setIsAutoAssignModalOpen(true)} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-sm hover:bg-green-600 transition-colors text-sm">
-                    ورود اکسل
-                </button>
                 <button onClick={() => setIsAddModalOpen(true)} className="flex items-center bg-sky-500 text-white font-semibold px-3 py-2 rounded-lg shadow-sm hover:bg-sky-600 transition-colors text-sm">
                     <PlusIcon className="w-4 h-4" />
-                    <span className="mr-2">افزودن</span>
+                    <span className="mr-2">افزودن دانش‌آموز</span>
                 </button>
-                <button onClick={() => onNavigate('classroom-manager')} className="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-sm hover:bg-indigo-600 transition-colors text-sm">
-                    مدیریت کلاس‌ها
+                 <button onClick={() => setIsAutoAssignModalOpen(true)} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-sm hover:bg-green-600 transition-colors text-sm">
+                    کلاس‌بندی خودکار
                 </button>
                  <button onClick={() => onNavigate('manual-assign')} className="px-4 py-2 bg-amber-500 text-white font-semibold rounded-lg shadow-sm hover:bg-amber-600 transition-colors text-sm">
                     کلاس‌بندی دستی
@@ -293,7 +293,7 @@ const AllStudentsView: React.FC<AllStudentsViewProps> = ({ onViewStudent, onNavi
                     >
                         <option value="all">همه کلاس‌ها</option>
                         <option value="none">دانش‌آموزان بدون کلاس</option>
-                        {classrooms.map(c => (
+                        {sortedClassrooms.map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                     </select>

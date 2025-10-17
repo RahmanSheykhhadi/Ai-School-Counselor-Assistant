@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Session, Student } from '../types';
+// FIX: Import useAppContext as a named import.
 import { useAppContext } from '../context/AppContext';
 import { EditIcon, TrashIcon, LockClosedIcon, ChevronDownIcon } from './icons';
 import { toPersianDigits } from '../utils/helpers';

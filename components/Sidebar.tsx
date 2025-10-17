@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
   
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => {
     const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students'].includes(currentView);
-    const isStudentsSectionActive = ['students', 'student-detail', 'manual-assign', 'classroom-manager'].includes(currentView);
+    const isStudentsSectionActive = ['students', 'student-detail', 'manual-assign'].includes(currentView);
     
     let isActive = currentView === item.view;
     if (item.view === 'more' && isMoreSectionActive) {
@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
         <nav className="flex flex-col space-y-2">
           {navItems.map(item => {
             const isMoreSectionActive = ['more', 'reports', 'settings', 'grade-nine-quorum', 'special-students', 'counseling-needed-students'].includes(currentView);
-            const isStudentsSectionActive = ['students', 'student-detail', 'manual-assign', 'classroom-manager'].includes(currentView);
+            const isStudentsSectionActive = ['students', 'student-detail', 'manual-assign'].includes(currentView);
             
             let isActive = currentView === item.view;
             if (item.view === 'more' && isMoreSectionActive) {

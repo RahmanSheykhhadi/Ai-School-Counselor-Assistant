@@ -24,7 +24,6 @@ const getTitle = (view: View): string => {
       'counseling-needed-students': 'نیازمند مشاوره',
       'manual-assign': 'کلاس‌بندی دستی',
       'thinking-lifestyle': 'تفکر و سبک زندگی',
-      'classroom-manager': 'مدیریت کلاس‌ها',
       'help': 'راهنما',
     };
     return titles[view] || 'همیار مشاور هوشمند';
@@ -35,20 +34,38 @@ const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
     const title = getTitle(currentView);
 
     const subPagesOfMore: View[] = ['special-students', 'counseling-needed-students', 'grade-nine-quorum', 'reports', 'settings', 'help'];
-    const isSubPage = subPagesOfMore.includes(currentView);
+    const subPagesOfDashboard: View[] = ['all-sessions', 'upcoming-sessions'];
+    const subPagesOfStudents: View[] = ['student-detail', 'manual-assign'];
+
+
+    const isSubPageOfMore = subPagesOfMore.includes(currentView);
+    const isSubPageOfDashboard = subPagesOfDashboard.includes(currentView);
+    const isSubPageOfStudents = subPagesOfStudents.includes(currentView);
+
+    const showBackButton = isSubPageOfMore || isSubPageOfDashboard || isSubPageOfStudents;
+    
+    const handleBack = () => {
+        if (isSubPageOfMore) onNavigate('more');
+        else if (isSubPageOfDashboard) onNavigate('dashboard');
+        else if (isSubPageOfStudents) onNavigate('students');
+    };
 
     return (
-        <header className="md:hidden flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10">
-            {isSubPage ? (
-                <button onClick={() => onNavigate('more')} className="bg-green-500 text-white font-semibold px-4 py-1.5 rounded-lg shadow-sm hover:bg-green-600 transition-colors">
+        <header className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10">
+            {showBackButton ? (
+                 <button 
+                    onClick={handleBack} 
+                    className="bg-green-500 text-white font-semibold px-4 py-1.5 rounded-lg shadow-sm hover:bg-green-600 transition-colors"
+                >
                     بازگشت
                 </button>
             ) : (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 md:hidden">
                     <AppLogoIcon iconUrl={appSettings.appIcon} className="w-8 h-8" />
-                    <h1 className="text-base font-bold text-slate-800">{title}</h1>
                 </div>
             )}
+            <h1 className="text-base font-bold text-slate-800 md:text-xl absolute left-1/2 -translate-x-1/2">{title}</h1>
+             <div className="w-20"></div> {/* Spacer to balance the header */}
         </header>
     );
 };

@@ -19,6 +19,10 @@ moment.updateLocale('fa', {
     MM: '%d ماه',
     y: 'یک سال',
     yy: '%d سال'
+  },
+  week: {
+    dow: 6, // Saturday is the first day of the week.
+    doy: 12 
   }
 });
 

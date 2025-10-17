@@ -1,19 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ArrowRightIcon } from './icons';
+import { useAppContext } from '../context/AppContext';
 
 interface HelpViewProps {
     onBack: () => void;
 }
 
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <section className="mb-10">
+const Section: React.FC<{ title: string; children: React.ReactNode, id?: string }> = ({ title, children, id }) => (
+    <section className="mb-10" id={id}>
         <h2 className="text-2xl font-bold text-sky-700 border-b pb-2 mb-4">{title}</h2>
         <div className="space-y-4">{children}</div>
     </section>
 );
 
-const SubSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className="mt-6">
+const SubSection: React.FC<{ title: string; children: React.ReactNode, id?: string }> = ({ title, children, id }) => (
+    <div className="mt-6" id={id}>
         <h3 className="text-xl font-semibold text-sky-600 mb-2">{title}</h3>
         <div className="space-y-3 pr-4 border-r-2 border-slate-200">{children}</div>
     </div>
@@ -29,19 +30,51 @@ const Alert: React.FC<{ type: 'info' | 'warning' | 'danger'; children: React.Rea
     return <div className={`${baseClasses} ${typeClasses[type]}`}>{children}</div>;
 };
 
-const Code: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <code className="bg-slate-200 text-slate-800 px-2 py-1 rounded-md text-sm" dir="ltr">{children}</code>
-);
+const Code: React.FC<{ children: React.ReactNode, isBlock?: boolean }> = ({ children, isBlock }) => {
+    const blockClasses = "block whitespace-pre-wrap p-4 text-left font-mono text-sm leading-relaxed";
+    const inlineClasses = "px-2 py-1 text-sm";
+    return (
+        <code className={`bg-slate-200 text-slate-800 rounded-md ${isBlock ? blockClasses : inlineClasses}`} dir="ltr">
+            {children}
+        </code>
+    );
+};
+
 
 export const HelpView: React.FC<HelpViewProps> = ({ onBack }) => {
+    const { helpScrollTarget, setHelpScrollTarget } = useAppContext();
+    
+    useEffect(() => {
+        if (helpScrollTarget) {
+            const element = document.querySelector(helpScrollTarget);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            // Reset the target so it doesn't trigger again on re-render
+            setHelpScrollTarget(null);
+        }
+    }, [helpScrollTarget, setHelpScrollTarget]);
+    
+    const sqlCode = `-- 1. Add the column to store your app's data
+ALTER TABLE profiles
+ADD COLUMN app_data JSONB;
+
+-- 2. Enable Row Level Security (RLS) for the table
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- 3. Create a policy that allows users to read their own data
+CREATE POLICY "Users can read their own app_data"
+ON profiles FOR SELECT
+USING (auth.uid() = id);
+
+-- 4. Create a policy that allows users to update their own data
+CREATE POLICY "Users can update their own app_data"
+ON profiles FOR UPDATE
+USING (auth.uid() = id);`;
+    
     return (
         <div className="space-y-6">
-            <div className="relative text-center">
-                <div className="absolute top-1/2 -translate-y-1/2 right-0 hidden md:block">
-                    <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors">
-                        <ArrowRightIcon className="w-6 h-6" />
-                    </button>
-                </div>
+            <div className="relative text-center hidden md:block">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">راهنما و توافق‌نامه</h1>
             </div>
 
@@ -147,7 +180,7 @@ export const HelpView: React.FC<HelpViewProps> = ({ onBack }) => {
                                 <li><strong>حذف داده‌ها:</strong> تمام اطلاعات برنامه را برای همیشه حذف می‌کند. <strong>این عمل غیرقابل بازگشت است.</strong></li>
                             </ul>
                         </SubSection>
-                        <SubSection title="همگام‌سازی ابری (Supabase)">
+                        <SubSection title="همگام‌سازی ابری (Supabase)" id="supabase-help-section">
                             <p>این قابلیت به شما اجازه می‌دهد اطلاعات برنامه را بین چند دستگاه (مثلاً کامپیوتر محل کار و گوشی شخصی) همگام‌سازی کنید.</p>
                             <Alert type="warning">
                                 <strong>پیش‌نیاز:</strong> برای استفاده از این قابلیت، به یک حساب کاربری رایگان در سایت <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase.com</a> نیاز دارید.
@@ -164,6 +197,9 @@ export const HelpView: React.FC<HelpViewProps> = ({ onBack }) => {
                                     </ul>
                                 </li>
                                 <li>به برنامه «همیار مشاور» برگردید. در تنظیمات بخش «مدیریت داده‌ها»، مقادیر کپی شده را در فیلدهای «آدرس پروژه» و «کلید عمومی» جای‌گذاری کرده و روی <strong>«ذخیره و آزمایش اتصال»</strong> کلیک کنید.</li>
+                                <li><strong>مهم:</strong> در داشبورد Supabase، به بخش <strong>SQL Editor</strong> بروید، یک <strong>New query</strong> ایجاد کرده و کدهای زیر را برای تنظیم دسترسی‌ها اجرا کنید:
+                                    <Code isBlock>{sqlCode}</Code>
+                                </li>
                             </ol>
                             <h4 className="font-semibold text-lg mt-4">نحوه استفاده:</h4>
                             <ul className="list-disc list-outside pr-5 space-y-2">

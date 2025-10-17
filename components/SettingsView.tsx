@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import JSZip from 'jszip';
 import moment from 'jalali-moment';
 import { useAppContext } from '../context/AppContext';
-import type { AppSettings, WorkingDays, BackupData, SessionType, View, CounselingNeededInfo } from '../types';
+import type { AppSettings, WorkingDays, BackupData, SessionType, View } from '../types';
 import { hashPassword, verifyPassword } from '../utils/helpers';
 import SidaImportModal from './SidaImportModal';
 import BackupProgressModal from './BackupProgressModal';
@@ -10,16 +10,17 @@ import { RestoreProgressModal } from './RestoreProgressModal';
 import ConfirmationModal from './ConfirmationModal';
 import { toPersianDigits, normalizePersianChars } from '../utils/helpers';
 import { createClient } from '@supabase/supabase-js';
-import { EditIcon, TrashIcon, Bars2Icon, AppLogoIcon, SaveIcon, ChevronDownIcon, ArrowRightIcon } from './icons';
+import { EditIcon, TrashIcon, Bars2Icon, AppLogoIcon, SaveIcon, ChevronDownIcon, QuestionMarkCircleIcon } from './icons';
 
 type Tab = 'general' | 'appearance' | 'workingDays' | 'security' | 'data';
 
-const SupabaseSettings = () => {
+const SupabaseSettings: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
     const { 
         appSettings, setAppSettings, 
         supabaseUser, supabaseLogin, supabaseLogout, supabaseResendConfirmation,
         syncToCloud, syncFromCloud,
-        syncStatus, lastSyncTime
+        syncStatus, lastSyncTime,
+        setHelpScrollTarget
     } = useAppContext();
     
     const [localSupabaseUrl, setLocalSupabaseUrl] = useState(appSettings.supabaseUrl);
@@ -104,11 +105,23 @@ const SupabaseSettings = () => {
         setShowSyncToConfirm(false);
         syncToCloud();
     };
+    
+    const handleHelpClick = () => {
+        setHelpScrollTarget('#supabase-help-section');
+        onNavigate('help');
+    };
 
     return (
         <div className="p-4 border rounded-lg flex flex-col transition-shadow hover:shadow-md mt-6 bg-slate-50">
-            <h3 className="font-semibold mb-2 text-lg">همگام‌سازی با Supabase</h3>
-            <p className="text-sm text-slate-500 mb-4 flex-grow">اطلاعات خود را بین دستگاه‌های مختلف با استفاده از Supabase همگام‌سازی کنید.</p>
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-lg">همگام‌سازی با Supabase</h3>
+                     <button onClick={handleHelpClick} title="راهنمای راه‌اندازی" className="text-sky-500 hover:text-sky-700">
+                        <QuestionMarkCircleIcon className="w-6 h-6" />
+                    </button>
+                </div>
+                <p className="text-sm text-slate-500 mb-4 flex-grow text-left">همگام‌سازی بین دستگاه‌ها</p>
+            </div>
             
             <div className="space-y-4">
                 <div>
@@ -217,7 +230,7 @@ const SupabaseSettings = () => {
 };
 
 
-const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+const SettingsView: React.FC<{ onBack: () => void; onNavigate: (view: View) => void; }> = ({ onBack, onNavigate }) => {
     const { 
         appSettings, setAppSettings, workingDays, setWorkingDays, 
         sessionTypes, handleAddSessionType, handleUpdateSessionType, handleDeleteSessionType,
@@ -461,481 +474,307 @@ const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         const zip = new JSZip();
 
         onProgress({ progress: 10, message: 'جمع‌آوری اطلاعات اصلی...' });
+        
+        const { supabaseUrl, supabaseAnonKey, ...settingsToBackup } = appSettings;
+
         const backupData: BackupData = {
             classrooms: allData.classrooms,
-            students: allData.students,
+            students: allData.students.map(({ photoUrl, ...rest }) => rest), // Remove photoUrl from JSON
             sessions: allData.sessions,
             sessionTypes: sessionTypes,
             studentGroups: allData.studentGroups,
             workingDays: workingDays,
-            appSettings: appSettings,
+            appSettings: settingsToBackup,
             specialStudents: allData.specialStudents,
             counselingNeededStudents: allData.counselingNeededStudents,
             thinkingObservations: allData.thinkingObservations,
             thinkingEvaluations: allData.thinkingEvaluations,
+            attendanceRecords: allData.attendanceRecords,
+            attendanceNotes: allData.attendanceNotes,
         };
-        zip.file("backup.json", JSON.stringify(backupData, null, 2));
-
-        onProgress({ progress: 30, message: 'جمع‌آوری عکس‌های پروفایل...' });
+        zip.file("backup.json", JSON.stringify(backupData));
+        
+        onProgress({ progress: 40, message: 'فشرده‌سازی عکس‌ها...' });
         const photoFolder = zip.folder("photos");
         if (photoFolder) {
-            const photoPromises = allData.students
-                .filter(s => s.nationalId && s.photoUrl && s.photoUrl.startsWith('data:image'))
-                .map(async student => {
-                    const response = await fetch(student.photoUrl);
-                    const blob = await response.blob();
-                    photoFolder.file(`${student.nationalId}.jpg`, blob);
-                });
-            await Promise.all(photoPromises);
+            allData.students.forEach(student => {
+                if (student.photoUrl && student.photoUrl.startsWith('data:') && student.nationalId) {
+                    const base64Data = student.photoUrl.split(',')[1];
+                    photoFolder.file(`${student.nationalId}.jpg`, base64Data, { base64: true });
+                }
+            });
         }
 
-        onProgress({ progress: 80, message: 'ایجاد فایل پشتیبان...' });
+        onProgress({ progress: 80, message: 'ساخت فایل نهایی...' });
         const content = await zip.generateAsync({ type: "blob" });
         
-        onProgress({ progress: 95, message: 'آماده‌سازی برای دانلود...' });
+        const timestamp = moment().format('jYYYY-jMM-jDD_HH-mm');
+        const filename = `SCA-BK_${timestamp}.zip`;
+
         const link = document.createElement("a");
-        const date = moment().locale('fa').format('YYYY-MM-DD');
-        link.download = `SCA-BK-(${date}).zip`;
         link.href = URL.createObjectURL(content);
+        link.download = filename;
         link.click();
         URL.revokeObjectURL(link.href);
 
-        onProgress({ progress: 100, message: 'پشتیبان‌گیری با موفقیت انجام شد!' });
-    };
-
-    const handleRestoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            if (file.type === 'application/zip' || file.name.endsWith('.zip')) {
-                setBackupFile(file);
-                setShowRestoreConfirm(true);
-            } else {
-                alert('لطفا یک فایل پشتیبان با فرمت .zip انتخاب کنید.');
-            }
-            e.target.value = ''; // Reset input
-        }
+        onProgress({ progress: 100, message: 'پشتیبان‌گیری با موفقیت انجام شد.' });
     };
     
-    const TabButton = ({ tab, label }: { tab: Tab, label: string }) => (
+    const TabButton: React.FC<{ tab: Tab, label: string }> = ({ tab, label }) => (
         <button
-            type="button"
             onClick={() => setActiveTab(tab)}
-            className={`px-2 sm:px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === tab ? 'border-sky-500 text-sky-600' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
+            className={`px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                activeTab === tab 
+                ? 'bg-sky-500 text-white shadow' 
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
         >
             {label}
         </button>
     );
 
-    const workingDaysMap: { key: keyof WorkingDays, label: string }[] = [
-        { key: 'saturday', label: 'شنبه' }, { key: 'sunday', label: 'یکشنبه' },
-        { key: 'monday', label: 'دوشنبه' }, { key: 'tuesday', label: 'سه‌شنبه' },
-        { key: 'wednesday', label: 'چهارشنبه' }, { key: 'thursday', label: 'پنج‌شنبه' },
-        { key: 'friday', label: 'جمعه' },
-    ];
-
-    const academicYears = React.useMemo(() => {
-        const currentJalaliYear = moment().jYear();
-        return Array.from({ length: 5 }, (_, i) => {
-          const startYear = currentJalaliYear + i;
-          return `${startYear}-${startYear + 1}`;
-        });
-    }, []);
-    
     return (
         <div className="space-y-6">
-            <div className="relative text-center">
-                <div className="absolute top-1/2 -translate-y-1/2 right-0 hidden md:block">
-                    <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors">
-                        <ArrowRightIcon className="w-6 h-6" />
-                    </button>
-                </div>
+            <div className="relative text-center hidden md:block">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">تنظیمات</h1>
-                <p className="text-slate-500 mt-1">تنظیمات کلی برنامه، ظاهر و گزینه‌های امنیتی را مدیریت کنید.</p>
+                <p className="text-slate-500 mt-1">تنظیمات کلی برنامه، ظاهر، امنیت و داده‌ها را مدیریت کنید.</p>
             </div>
-            
-            <div className="bg-white rounded-xl shadow-sm p-2 sm:p-4">
-                <div className="flex flex-wrap gap-1 border-b border-slate-200 mb-6">
-                    <TabButton tab="general" label="عمومی" />
-                    <TabButton tab="appearance" label="ظاهری" />
-                    <TabButton tab="workingDays" label="روزهای کاری" />
-                    <TabButton tab="security" label="امنیتی" />
-                    <TabButton tab="data" label="مدیریت داده‌ها" />
+
+            <div className="bg-white p-2 rounded-xl shadow-sm flex flex-wrap gap-1 justify-center sticky top-20 md:top-4 z-10">
+                <TabButton tab="general" label="عمومی" />
+                <TabButton tab="appearance" label="ظاهری" />
+                <TabButton tab="workingDays" label="روزهای کاری" />
+                <TabButton tab="security" label="امنیتی" />
+                <TabButton tab="data" label="مدیریت داده‌ها" />
+            </div>
+
+            {activeTab === 'general' && (
+                <div className="space-y-6">
+                    <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-4">
+                        <div>
+                            <label htmlFor="academicYear" className="block text-sm font-medium text-slate-700 mb-1">سال تحصیلی فعال</label>
+                            <input type="text" id="academicYear" name="academicYear" value={localAppSettings.academicYear} onChange={handleAppSettingsChange} className="w-full p-2 border border-slate-300 rounded-md" placeholder="مثال: ۱۴۰۳-۱۴۰۴" />
+                        </div>
+                        <div>
+                            <label htmlFor="geminiApiKey" className="block text-sm font-medium text-slate-700 mb-1">کلید API هوش مصنوعی (Google Gemini)</label>
+                            <input type="password" id="geminiApiKey" name="geminiApiKey" value={localAppSettings.geminiApiKey} onChange={handleAppSettingsChange} className="w-full p-2 border border-slate-300 rounded-md" dir="ltr" />
+                            <p className="text-xs text-slate-500 mt-1">این کلید برای استفاده از قابلیت‌های هوشمند (خلاصه‌سازی و پیشنهاد اقدام) لازم است.</p>
+                        </div>
+                        <div className="flex justify-center pt-4">
+                            <button onClick={handleSaveGeneral} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                                <SaveIcon className="w-5 h-5" />
+                                <span>ذخیره</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-4">
+                         <button onClick={() => setIsSessionTypesExpanded(p => !p)} className="w-full flex justify-between items-center text-right font-semibold text-lg">
+                            <span>مدیریت انواع جلسه</span>
+                            <ChevronDownIcon className={`w-6 h-6 transition-transform ${isSessionTypesExpanded ? 'rotate-180' : ''}`} />
+                        </button>
+                         {isSessionTypesExpanded && (
+                            <div className="pt-2 border-t">
+                                <form onSubmit={handleSessionTypeSubmit} className="flex items-end gap-2 mb-3">
+                                    <div className="flex-grow">
+                                        <label htmlFor="session-type-name" className="text-sm">نام نوع جلسه</label>
+                                        <input type="text" id="session-type-name" value={newSessionTypeName} onChange={e => setNewSessionTypeName(normalizePersianChars(e.target.value))} className="w-full p-2 border rounded-md" />
+                                    </div>
+                                    <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded-md">{editingSessionType ? 'ویرایش' : 'افزودن'}</button>
+                                    {editingSessionType && <button type="button" onClick={handleCancelEdit} className="px-4 py-2 bg-slate-200 rounded-md">انصراف</button>}
+                                </form>
+                                <ul className="space-y-2">
+                                    {localSessionTypes.map((st, index) => (
+                                        <li key={st.id} draggable onDragStart={() => dragItem.current = index} onDragEnter={() => dragOverItem.current = index} onDragEnd={handleSessionTypeDragEnd} onDragOver={e => e.preventDefault()}
+                                            className="flex items-center justify-between p-2 bg-slate-50 rounded-md cursor-grab">
+                                            <div className="flex items-center gap-2">
+                                                <Bars2Icon className="w-5 h-5 text-slate-400" />
+                                                <span>{st.name}</span>
+                                            </div>
+                                            <div>
+                                                <button onClick={() => handleEditSessionType(st)} className="p-1"><EditIcon className="w-4 h-4 text-slate-500" /></button>
+                                                <button onClick={() => handleDeleteSessionType(st.id)} className="p-1"><TrashIcon className="w-4 h-4 text-slate-500" /></button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                 </div>
+            )}
+            
+            {activeTab === 'appearance' && (
+                <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-4 max-w-2xl mx-auto">
+                    <div>
+                        <label htmlFor="fontSize" className="block text-sm font-medium text-slate-700 mb-1">اندازه فونت</label>
+                        <select id="fontSize" name="fontSize" value={localAppSettings.fontSize} onChange={handleAppSettingsChange} className="w-full p-2 border border-slate-300 rounded-md bg-white">
+                            <option value="14">کوچک</option>
+                            <option value="16">متوسط</option>
+                            <option value="18">بزرگ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">آیکون برنامه</label>
+                        <div className="flex items-center gap-4">
+                            <AppLogoIcon iconUrl={localAppSettings.appIcon} className="w-12 h-12 rounded-lg border-2 border-slate-200 p-1" />
+                            <div className="flex-grow">
+                                <button onClick={() => iconInputRef.current?.click()} className="w-full mb-2 px-4 py-2 bg-sky-500 text-white text-sm rounded-md hover:bg-sky-600">انتخاب آیکون</button>
+                                <button onClick={handleResetIcon} className="w-full px-4 py-2 bg-slate-200 text-slate-700 text-sm rounded-md hover:bg-slate-300">بازنشانی به پیش‌فرض</button>
+                                <input type="file" ref={iconInputRef} onChange={handleIconChange} accept="image/png, image/jpeg, image/webp" className="hidden" />
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">آیکون در صفحه اصلی گوشی و در مرورگر نمایش داده می‌شود (حداکثر حجم: 500 کیلوبایت).</p>
+                    </div>
+                    <div className="flex justify-center pt-4">
+                        <button onClick={handleSaveAppearance} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                             <SaveIcon className="w-5 h-5" />
+                            <span>ذخیره</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {activeTab === 'workingDays' && (
+                <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-4 max-w-2xl mx-auto">
+                    <h3 className="font-semibold text-lg">روزهای کاری هفته</h3>
+                    <p className="text-sm text-slate-500">روزهایی که در مدرسه حضور دارید را انتخاب کنید. تقویم بر این اساس روزهای کاری را مشخص می‌کند.</p>
+                    <div className="grid grid-cols-2 gap-3">
+                        {Object.entries({saturday: 'شنبه', sunday: 'یکشنبه', monday: 'دوشنبه', tuesday: 'سه‌شنبه', wednesday: 'چهارشنبه', thursday: 'پنجشنبه', friday: 'جمعه'}).map(([day, label]) => (
+                            <div key={day} className="flex items-center p-3 bg-slate-50 rounded-md border">
+                                <input type="checkbox" id={day} name={day} checked={localWorkingDays[day as keyof WorkingDays]} onChange={handleWorkingDaysChange} className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500" />
+                                <label htmlFor={day} className="mr-3 text-sm font-medium text-slate-800">{label}</label>
+                            </div>
+                        ))}
+                    </div>
+                     <div className="flex justify-center pt-4">
+                        <button onClick={handleSaveWorkingDays} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                             <SaveIcon className="w-5 h-5" />
+                            <span>ذخیره</span>
+                        </button>
+                    </div>
+                </div>
+            )}
 
-                <div className="p-2 sm:p-4">
-                    {activeTab === 'general' && (
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4">تنظیمات عمومی</h2>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                 <div>
-                                    <label htmlFor="academicYear" className="block text-sm font-medium text-slate-700 mb-1">سال تحصیلی فعال</label>
-                                    <select name="academicYear" id="academicYear" value={localAppSettings.academicYear} onChange={handleAppSettingsChange} className="w-full p-2 border border-slate-300 rounded-md bg-white">
-                                        {academicYears.map(year => (
-                                            <option key={year} value={year}>{toPersianDigits(year)}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label htmlFor="geminiApiKey" className="block text-sm font-medium text-slate-700 mb-1">کلید API هوش مصنوعی (اختیاری)</label>
-                                    <input 
-                                      type="password" 
-                                      name="geminiApiKey" 
-                                      id="geminiApiKey" 
-                                      value={localAppSettings.geminiApiKey || ''} 
-                                      onChange={handleAppSettingsChange} 
-                                      className="w-full p-2 border border-slate-300 rounded-md"
-                                      placeholder="جهت فعال‌سازی پیشنهاد اقدام و خلاصه‌سازی هوشمند"
-                                      dir="ltr"
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div className="pt-4 mt-4 border-t border-slate-200">
-                                <button 
-                                    onClick={() => setIsSessionTypesExpanded(!isSessionTypesExpanded)}
-                                    className="w-full flex justify-between items-center text-right"
-                                    aria-expanded={isSessionTypesExpanded}
-                                >
-                                    <h3 className="text-lg font-semibold text-slate-700">تعریف انواع مشاوره</h3>
-                                    <ChevronDownIcon className={`w-5 h-5 text-slate-500 transition-transform ${isSessionTypesExpanded ? 'rotate-180' : ''}`} />
-                                </button>
-                                {isSessionTypesExpanded && (
-                                    <div className="mt-3 p-4 border rounded-lg bg-slate-50 space-y-3">
-                                        <ul className="space-y-2 max-h-48 overflow-y-auto pr-2 force-scrollbar-right">
-                                            {localSessionTypes.map((st, index) => (
-                                                <li 
-                                                    key={st.id} 
-                                                    className={`flex items-center justify-between p-2 bg-white rounded-md border group ${dragItem.current === index ? 'opacity-50 border-dashed border-sky-500' : ''}`}
-                                                    draggable
-                                                    onDragStart={() => (dragItem.current = index)}
-                                                    onDragEnter={() => (dragOverItem.current = index)}
-                                                    onDragEnd={handleSessionTypeDragEnd}
-                                                    onDragOver={(e) => e.preventDefault()}
-                                                >
-                                                    <div className="flex items-center">
-                                                        <Bars2Icon className="w-5 h-5 text-slate-400 cursor-grab mr-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-                                                        <span className="text-slate-700">{st.name}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <button onClick={() => handleEditSessionType(st)} className="p-1.5 rounded-full text-slate-500 hover:bg-slate-100 hover:text-sky-600" title="ویرایش"><EditIcon className="w-4 h-4" /></button>
-                                                        <button
-                                                            onClick={() => handleDeleteSessionType(st.id)}
-                                                            disabled={localSessionTypes.length <= 1}
-                                                            title={localSessionTypes.length <= 1 ? "حداقل یک نوع جلسه باید وجود داشته باشد" : "حذف"}
-                                                            className="p-1.5 rounded-full text-slate-500 hover:bg-slate-100 hover:text-red-600 disabled:text-slate-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-                                                        >
-                                                            <TrashIcon className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                        <form onSubmit={handleSessionTypeSubmit} className="flex flex-col sm:flex-row items-end gap-3 pt-3 border-t">
-                                            <div className="flex-grow w-full">
-                                                <label htmlFor="sessionTypeName" className="block text-sm font-medium text-slate-700 mb-1">
-                                                    {editingSessionType ? `ویرایش نام:` : 'افزودن نوع جدید:'}
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    id="sessionTypeName"
-                                                    value={newSessionTypeName}
-                                                    onChange={e => setNewSessionTypeName(normalizePersianChars(e.target.value))}
-                                                    placeholder="مثال: مشاوره فردی"
-                                                    className="w-full p-2 border border-slate-300 rounded-md"
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="flex gap-2 w-full sm:w-auto flex-shrink-0">
-                                                {editingSessionType && (
-                                                    <button type="button" onClick={handleCancelEdit} className="w-full sm:w-auto px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">
-                                                        لغو
-                                                    </button>
-                                                )}
-                                                <button type="submit" className="w-full sm:w-auto px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
-                                                    {editingSessionType ? 'ذخیره' : 'افزودن'}
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <div className="flex justify-center pt-4">
-                                <button onClick={handleSaveGeneral} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
-                                    <SaveIcon className="w-5 h-5" />
-                                    <span>ذخیره</span>
-                                </button>
-                            </div>
+            {activeTab === 'security' && (
+                <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-4 max-w-2xl mx-auto">
+                    <h3 className="font-semibold text-lg">رمز عبور</h3>
+                    <p className="text-sm text-slate-500">برای محافظت از آرشیو جلسات و اطلاعات دانش‌آموزان خاص، یک رمز عبور عددی (۴ تا ۸ رقم) تنظیم کنید.</p>
+                    
+                    {appSettings.sessionPasswordHash && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">رمز عبور فعلی</label>
+                            <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full p-2 border rounded-md" dir="ltr" />
                         </div>
                     )}
-                    {activeTab === 'appearance' && (
-                        <div className="space-y-4">
-                             <h2 className="text-xl font-bold text-slate-800 mb-4">تنظیمات ظاهری</h2>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                 <div>
-                                    <label htmlFor="fontSize" className="block text-sm font-medium text-slate-700 mb-1">اندازه فونت (پیکسل)</label>
-                                    <input type="number" name="fontSize" value={localAppSettings.fontSize} onChange={handleAppSettingsChange} className="w-full p-2 border border-slate-300 rounded-md" placeholder="مثال: 16" />
-                                </div>
-                            </div>
-                            <div className="pt-4 mt-4 border-t border-slate-200">
-                                <h3 className="text-lg font-semibold text-slate-700">آیکون برنامه</h3>
-                                <p className="text-sm text-slate-500 mt-1 mb-3 text-justify">
-                                    <strong>توصیه‌ها:</strong> فرمت SVG یا PNG، ابعاد 512x512 پیکسل و پس‌زمینه شفاف برای بهترین نتیجه.
-                                </p>
-                                <div className="flex items-center gap-4">
-                                    <AppLogoIcon iconUrl={localAppSettings.appIcon} className="w-16 h-16 rounded-lg border p-1 bg-slate-50" />
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => iconInputRef.current?.click()}
-                                            className="px-4 py-2 bg-slate-600 text-white text-sm font-semibold rounded-md hover:bg-slate-700"
-                                        >
-                                            تغییر آیکون
-                                        </button>
-                                        <input
-                                            type="file"
-                                            ref={iconInputRef}
-                                            onChange={handleIconChange}
-                                            className="hidden"
-                                            accept="image/svg+xml, image/png, image/jpeg, image/webp"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={handleResetIcon}
-                                            className="px-4 py-2 bg-slate-200 text-slate-800 text-sm font-semibold rounded-md hover:bg-slate-300"
-                                        >
-                                            آیکون پیش‌فرض
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="pt-4 mt-4 border-t border-slate-200">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-lg font-semibold text-slate-700">اصلاح نویسه‌ها</h3>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowNormalizeConfirm(true)}
-                                        className="px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-md hover:bg-amber-600"
-                                    >
-                                        شروع عملیات اصلاح
-                                    </button>
-                                </div>
-                                <p className="text-sm text-slate-500 mt-2 text-justify">
-                                    اصلاح ي و ك عربی
-                                </p>
-                            </div>
-                            <div className="pt-4 mt-4 border-t border-slate-200">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-lg font-semibold text-slate-700">افزودن صفر به ابتدا</h3>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPrependZeroConfirm(true)}
-                                        className="px-3 py-1 bg-blue-500 text-white text-xs font-semibold rounded-md hover:bg-blue-600"
-                                    >
-                                        شروع عملیات افزودن صفر
-                                    </button>
-                                </div>
-                                <p className="text-sm text-slate-500 mt-2 text-justify">
-                                    این ابزار به ابتدای شماره‌های موبایل ۱۰ رقمی (که با ۰ شروع نشده‌اند) و کدهای ملی ۹ رقمی، عدد صفر «۰» را اضافه می‌کند.
-                                </p>
-                            </div>
-                             <div className="flex justify-center pt-4">
-                                <button onClick={handleSaveAppearance} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
-                                    <SaveIcon className="w-5 h-5" />
-                                    <span>ذخیره</span>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                    {activeTab === 'workingDays' && (
-                         <div className="space-y-4">
-                             <h2 className="text-xl font-bold text-slate-800 mb-4">روزهای کاری هفته</h2>
-                             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-4">
-                                {workingDaysMap.map(({key, label}) => (
-                                     <div key={key} className="flex items-center p-2 bg-slate-50 rounded-md">
-                                        <input type="checkbox" id={key} name={key} checked={localWorkingDays[key]} onChange={handleWorkingDaysChange} className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"/>
-                                        <label htmlFor={key} className="mr-2 text-sm font-medium text-slate-700">{label}</label>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex justify-center pt-4">
-                                <button onClick={handleSaveWorkingDays} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
-                                    <SaveIcon className="w-5 h-5" />
-                                    <span>ذخیره</span>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                     {activeTab === 'security' && (
-                        <div className="space-y-6">
-                            <h2 className="text-xl font-bold text-slate-800">تنظیمات امنیتی</h2>
-                            <p className="text-sm text-slate-500 -mt-4">برای آرشیو جلسات گذشته یک رمز عبور تنظیم کنید.</p>
-                            
-                            <div className="p-4 border rounded-md bg-slate-50 space-y-4">
-                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">رمز عبور فعلی</label>
-                                    <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder={appSettings.sessionPasswordHash ? "برای تغییر یا حذف، رمز فعلی را وارد کنید" : "رمز عبوری تنظیم نشده است"} className="w-full p-2 border border-slate-300 rounded-md" />
-                                    <p className="text-xs text-slate-400 mt-1">اگر برای اولین بار رمز تنظیم می‌کنید، این فیلد را خالی بگذارید.</p>
-                                </div>
-                                <hr/>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">رمز عبور جدید</label>
-                                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="رمز جدید (بین ۴ تا ۸ رقم)" className="w-full p-2 border border-slate-300 rounded-md" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">تکرار رمز عبور جدید</label>
-                                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="تکرار رمز جدید" className="w-full p-2 border border-slate-300 rounded-md" />
-                                </div>
-
-                                {securityMessage && (
-                                    <p className={`text-sm font-semibold ${securityMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-                                        {securityMessage.text}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="flex justify-between items-center gap-4 pt-4">
-                                <div
-                                    className="flex-grow"
-                                    onMouseDown={handleLongPressStart}
-                                    onMouseUp={handleLongPressEnd}
-                                    onMouseLeave={handleLongPressEnd}
-                                    onTouchStart={handleLongPressStart}
-                                    onTouchEnd={handleLongPressEnd}
-                                >&nbsp;</div>
-                                <div className="flex items-center gap-4 flex-shrink-0">
-                                   {appSettings.sessionPasswordHash && isResetVisible && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowResetConfirm(true)}
-                                        className="px-4 py-2 text-sm bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200"
-                                    >
-                                        ریست رمز عبور
-                                    </button>
-                                   )}
-                                   {appSettings.sessionPasswordHash && (
-                                    <button type="button" onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200">
-                                        حذف رمز عبور
-                                    </button>
-                                   )}
-                                    <button type="button" onClick={handleSetPassword} className="px-4 py-2 text-sm bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
-                                        {appSettings.sessionPasswordHash ? 'تغییر رمز' : 'تنظیم رمز'}
-                                    </button>
-                                </div>
-                                <div className="flex-grow">&nbsp;</div>
-                            </div>
-                        </div>
-                    )}
-                    {activeTab === 'data' && (
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4">مدیریت داده‌ها</h2>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <div className="p-3 border rounded-lg flex flex-col transition-shadow hover:shadow-md text-center">
-                                    <h3 className="font-semibold mb-3 flex-grow">پشتیبان‌گیری</h3>
-                                    <button type="button" onClick={() => setIsBackupModalOpen(true)} className="w-full mt-auto px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 text-sm">
-                                        تهیه پشتیبان
-                                    </button>
-                                </div>
-                                <div className="p-3 border rounded-lg flex flex-col transition-shadow hover:shadow-md text-center">
-                                    <h3 className="font-semibold mb-3 flex-grow">بازیابی پشتیبان</h3>
-                                    <input type="file" ref={restoreInputRef} onChange={handleRestoreChange} accept=".zip" className="hidden"/>
-                                    <button type="button" onClick={() => restoreInputRef.current?.click()} className="w-full mt-auto px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 text-sm">
-                                        انتخاب پشتیبان
-                                    </button>
-                                </div>
-                                <div className="p-3 border rounded-lg flex flex-col transition-shadow hover:shadow-md text-center">
-                                    <h3 className="font-semibold mb-3 flex-grow">دریافت عکس از سیدا</h3>
-                                    <button type="button" onClick={() => setIsSidaModalOpen(true)} className="w-full mt-auto px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm">
-                                        شروع
-                                    </button>
-                                </div>
-                                 <div className="p-3 border border-red-200 bg-red-50 rounded-lg flex flex-col transition-shadow hover:shadow-md text-center">
-                                    <h3 className="font-semibold mb-3 flex-grow text-red-800">حذف داده‌ها</h3>
-                                    <button type="button" onClick={() => setShowFactoryResetConfirm(true)} className="w-full mt-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm">
-                                        شروع حذف
-                                    </button>
-                                </div>
-                            </div>
-                            <SupabaseSettings />
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{appSettings.sessionPasswordHash ? 'رمز عبور جدید' : 'رمز عبور'}</label>
+                        <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full p-2 border rounded-md" dir="ltr" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">تکرار رمز عبور {appSettings.sessionPasswordHash ? 'جدید' : ''}</label>
+                        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full p-2 border rounded-md" dir="ltr" />
+                    </div>
+                    {securityMessage && <p className={`text-sm text-center ${securityMessage.type === 'error' ? 'text-red-600' : 'text-green-600'}`}>{securityMessage.text}</p>}
+                    <div className="flex flex-wrap justify-center gap-3 pt-4">
+                        <button onClick={handleSetPassword} className="px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700">
+                            {appSettings.sessionPasswordHash ? 'تغییر رمز عبور' : 'تنظیم رمز عبور'}
+                        </button>
+                        {appSettings.sessionPasswordHash && (
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                onMouseDown={handleLongPressStart}
+                                onMouseUp={handleLongPressEnd}
+                                onMouseLeave={handleLongPressEnd}
+                                onTouchStart={handleLongPressStart}
+                                onTouchEnd={handleLongPressEnd}
+                                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                            >
+                                حذف رمز عبور
+                            </button>
+                        )}
+                    </div>
+                    {isResetVisible && (
+                        <div className="text-center pt-2">
+                            <button onClick={() => setShowResetConfirm(true)} className="px-4 py-2 bg-orange-500 text-white text-sm rounded-md">ریست اضطراری رمز</button>
                         </div>
                     )}
                 </div>
-            </div>
+            )}
             
+            {activeTab === 'data' && (
+                 <div className="space-y-6">
+                    <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-4">
+                        <h3 className="font-semibold text-lg">ابزارهای داده</h3>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <button onClick={() => setShowNormalizeConfirm(true)} className="w-full p-3 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100">اصلاح کاراکترهای عربی (ی, ک)</button>
+                            <button onClick={() => setShowPrependZeroConfirm(true)} className="w-full p-3 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100">افزودن صفر به ابتدای کد ملی/موبایل</button>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-4">
+                        <h3 className="font-semibold text-lg">پشتیبان‌گیری و بازیابی</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <button onClick={() => setIsBackupModalOpen(true)} className="w-full p-3 bg-green-50 text-green-700 rounded-md hover:bg-green-100">تهیه فایل پشتیبان</button>
+                            <button onClick={() => restoreInputRef.current?.click()} className="w-full p-3 bg-green-50 text-green-700 rounded-md hover:bg-green-100">بازیابی از فایل پشتیبان</button>
+                            <input type="file" ref={restoreInputRef} onChange={(e) => { setBackupFile(e.target.files?.[0] || null); setShowRestoreConfirm(true); e.target.value = ''; }} accept=".zip" className="hidden" />
+                        </div>
+                    </div>
+                    
+                    <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm">
+                         <h3 className="font-semibold text-lg mb-2">ورود اطلاعات</h3>
+                         <button onClick={() => setIsSidaModalOpen(true)} className="w-full p-3 bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100">دریافت گروهی عکس پروفایل از سیدا</button>
+                    </div>
+
+                    <SupabaseSettings onNavigate={onNavigate} />
+                    
+                    <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm space-y-2 border-2 border-red-500">
+                         <h3 className="font-semibold text-lg text-red-700">منطقه خطر</h3>
+                         <button onClick={() => setShowFactoryResetConfirm(true)} className="w-full p-3 bg-red-50 text-red-700 rounded-md hover:bg-red-100">بازنشانی کارخانه (حذف تمام اطلاعات)</button>
+                    </div>
+                </div>
+            )}
+
             {toastMessage && (
                 <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-2 rounded-lg shadow-lg">
                     {toastMessage}
                 </div>
             )}
+            
             {showDeleteConfirm && (
                 <ConfirmationModal
                     title="حذف رمز عبور"
-                    message="برای حذف رمز عبور، لطفا رمز فعلی خود را در فیلد «رمز عبور فعلی» وارد کرده و سپس روی دکمه «تایید حذف» کلیک کنید."
+                    message={<>
+                        <p>آیا از حذف رمز عبور اطمینان دارید؟ برای این کار باید رمز عبور فعلی را وارد کنید.</p>
+                        <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full p-2 border rounded-md mt-3" dir="ltr" placeholder="رمز عبور فعلی" autoFocus />
+                        </>}
                     onConfirm={handleDeletePassword}
                     onCancel={() => setShowDeleteConfirm(false)}
-                    confirmButtonText="تایید حذف"
                 />
             )}
             {showResetConfirm && (
                 <ConfirmationModal
-                    title="ریست کردن رمز عبور"
-                    message="آیا از ریست کردن رمز عبور اطمینان دارید؟ این عمل قفل امنیتی را به طور کامل غیرفعال می‌کند."
-                    onConfirm={handleConfirmResetPassword}
-                    onCancel={() => setShowResetConfirm(false)}
-                    confirmButtonText="بله، ریست کن"
-                    confirmButtonVariant="danger"
+                    title="ریست اضطراری رمز"
+                    message={<p className="text-red-600 font-bold">هشدار: این کار رمز عبور شما را برای همیشه حذف می‌کند. آیا مطمئن هستید؟</p>}
+                    onConfirm={handleConfirmResetPassword} onCancel={() => setShowResetConfirm(false)}
                 />
             )}
-            {showNormalizeConfirm && (
-                <ConfirmationModal
-                    title="اصلاح نویسه‌های عربی"
-                    message="آیا از تبدیل تمام حروف «ی» و «ک» عربی به فارسی در کل برنامه اطمینان دارید؟ این عمل غیرقابل بازگشت است."
-                    onConfirm={handleConfirmNormalize}
-                    onCancel={() => setShowNormalizeConfirm(false)}
-                    confirmButtonText="بله، اصلاح کن"
-                    confirmButtonVariant="primary"
-                />
-            )}
-            {showPrependZeroConfirm && (
-                <ConfirmationModal
-                    title="افزودن صفر به ابتدا"
-                    message="آیا از افزودن صفر به ابتدای شماره‌های موبایل ۱۰ رقمی و کدهای ملی ۹ رقمی اطمینان دارید؟ این عمل غیرقابل بازگشت است."
-                    onConfirm={handleConfirmPrependZero}
-                    onCancel={() => setShowPrependZeroConfirm(false)}
-                    confirmButtonText="بله، اضافه کن"
-                    confirmButtonVariant="primary"
-                />
-            )}
-            {showFactoryResetConfirm && (
-                 <ConfirmationModal
-                    title="حذف داده‌ها"
-                    message={<p><strong>هشدار!</strong> این عمل تمام اطلاعات شامل کلاس‌ها، دانش‌آموزان، و جلسات را برای همیشه حذف خواهد کرد. این عمل غیرقابل بازگشت است. آیا مطمئن هستید؟</p>}
-                    onConfirm={handleConfirmFactoryReset}
-                    onCancel={() => setShowFactoryResetConfirm(false)}
-                    confirmButtonText="بله، همه چیز را پاک کن"
-                    confirmButtonVariant="danger"
-                />
-            )}
+            
+            {showNormalizeConfirm && <ConfirmationModal title="اصلاح کاراکترها" message="این عمل تمام نام‌ها را بررسی کرده و کاراکترهای «ي» و «ك» عربی را با «ی» و «ک» فارسی جایگزین می‌کند. آیا ادامه می‌دهید؟" onConfirm={handleConfirmNormalize} onCancel={() => setShowNormalizeConfirm(false)} confirmButtonText="بله، اصلاح کن" confirmButtonVariant="primary" />}
+            {showPrependZeroConfirm && <ConfirmationModal title="افزودن صفر" message="این عمل تمام کدهای ملی ۱۰ رقمی و شماره‌های موبایل ۱۰ رقمی را بررسی کرده و در صورت نیاز، صفر را به ابتدای آنها اضافه می‌کند. آیا ادامه می‌دهید؟" onConfirm={handleConfirmPrependZero} onCancel={() => setShowPrependZeroConfirm(false)} confirmButtonText="بله، اصلاح کن" confirmButtonVariant="primary" />}
+            {showFactoryResetConfirm && <ConfirmationModal title="بازنشانی کارخانه" message={<p className="text-red-600 font-bold">هشدار! این عمل تمام اطلاعات برنامه (دانش‌آموزان، جلسات، تنظیمات و...) را برای همیشه حذف می‌کند. این عمل غیرقابل بازگشت است. آیا مطمئن هستید؟</p>} onConfirm={handleConfirmFactoryReset} onCancel={() => setShowFactoryResetConfirm(false)} />}
+            
             {isSidaModalOpen && <SidaImportModal onClose={() => setIsSidaModalOpen(false)} />}
             {isBackupModalOpen && <BackupProgressModal onBackup={handleBackup} onClose={() => setIsBackupModalOpen(false)} />}
             {showRestoreConfirm && backupFile && (
                 <ConfirmationModal
                     title="بازیابی اطلاعات"
-                    message={
-                        <p>
-                            آیا از بازیابی اطلاعات از فایل <strong>{backupFile.name}</strong> اطمینان دارید؟
-                            <br/>
-                            <strong className="text-red-600">تمام اطلاعات فعلی شما پاک خواهد شد.</strong>
-                        </p>
-                    }
-                    onConfirm={() => { setShowRestoreConfirm(false); /* The modal will be shown by backupFile state change */ }}
-                    onCancel={() => { setBackupFile(null); setShowRestoreConfirm(false); }}
+                    message={<p className="font-bold text-red-600">هشدار! این عمل تمام اطلاعات فعلی روی این دستگاه را حذف و با اطلاعات موجود در فایل پشتیبان جایگزین می‌کند. آیا مطمئن هستید؟</p>}
+                    onConfirm={() => { setShowRestoreConfirm(false); }} // This will just close the confirm, restore modal will open next
+                    onCancel={() => { setShowRestoreConfirm(false); setBackupFile(null); }}
                     confirmButtonText="بله، بازیابی کن"
                 />
             )}
-            {/* This modal is now triggered only after confirmation */}
             {!showRestoreConfirm && backupFile && <RestoreProgressModal file={backupFile} onClose={() => setBackupFile(null)} />}
-
         </div>
     );
 };

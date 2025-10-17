@@ -97,8 +97,9 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     updates.push({ studentId, photoUrl });
                     successCount++;
                 } catch (error) {
-                    // FIX: Pass the 'unknown' error object as a separate argument to console.error to avoid a type error.
-                    console.error(`Error processing file ${file.name}:`, error);
+                    // @google/genai-api FIX: Convert 'unknown' error type to string for type-safe logging.
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    console.error("Error processing file:", file.name, errorMessage);
                     failCount++;
                 }
             } else {
@@ -214,7 +215,7 @@ const SidaImportModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             >
                                 <FolderIcon className="w-10 h-10 text-slate-400" />
                                 <span className="mt-2 font-semibold text-slate-700">انتخاب پوشه عکس‌ها</span>
-                                {/* FIX: The 'webkitdirectory' and 'directory' attributes are non-standard and not in React's TS types. Spreading them in an object cast to 'any' bypasses the type check. */}
+                                {/* The 'webkitdirectory' and 'directory' attributes are non-standard. Spreading them as `any` bypasses TS type checks. */}
                                 <input
                                     id="folder-upload"
                                     type="file"

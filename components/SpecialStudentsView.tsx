@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
+// FIX: Import useAppContext as a named import.
 import { useAppContext } from '../context/AppContext';
 import type { Student, SpecialStudentInfo } from '../types';
 import Modal from './Modal';
 import ProfilePhoto from './ProfilePhoto';
 import { toPersianDigits, verifyPassword, normalizePersianChars } from '../utils/helpers';
-import { EditIcon, StarIcon, LockClosedIcon, TrashIcon, SearchIcon, PrintIcon, ChevronDownIcon, SaveIcon, ArrowRightIcon } from './icons';
+import { EditIcon, StarIcon, LockClosedIcon, TrashIcon, SearchIcon, PrintIcon, ChevronDownIcon, SaveIcon } from './icons';
 import ConfirmationModal from './ConfirmationModal';
 
 // A map for checkbox labels and corresponding property names
@@ -79,8 +80,9 @@ const EditSpecialInfoModal: React.FC<{
                 </div>
                  <div className="flex justify-end space-x-reverse space-x-2 pt-4">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">انصراف</button>
-                    <button type="submit" title="ذخیره" className="p-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
-                        <SaveIcon className="w-6 h-6" />
+                    <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">
+                        <SaveIcon className="w-5 h-5" />
+                        <span>ذخیره</span>
                     </button>
                 </div>
             </form>
@@ -232,8 +234,8 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const handleExportHtml = () => {
         const classroomMap = new Map(classrooms.map(c => [c.id, c.name]));
 
-        const sanitizeHtml = (unsafe: string | undefined): string => {
-            if (!unsafe) return '';
+        const sanitizeHtml = (unsafe: unknown): string => {
+            if (typeof unsafe !== 'string') return '';
             return unsafe
                  .replace(/&/g, "&amp;")
                  .replace(/</g, "&lt;")
@@ -394,11 +396,8 @@ const SpecialStudentsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                 <div>
-                    <button onClick={onBack} title="بازگشت" className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-sky-600 transition-colors mb-2">
-                        <ArrowRightIcon className="w-6 h-6" />
-                    </button>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 text-center sm:text-right">دانش‌آموزان نیازمند توجه ویژه</h1>
+                 <div className="text-center sm:text-right">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">دانش‌آموزان نیازمند توجه ویژه</h1>
                 </div>
                 <button
                     onClick={handleExportHtml}

@@ -16,14 +16,33 @@ interface SessionModalProps {
 
 export default function SessionModal({ student, session, onClose, onSave }: SessionModalProps) {
     const { sessionTypes, appSettings } = useAppContext();
+
+    const getInitialTypeId = () => {
+        // If editing a session, check if its typeId is still valid.
+        if (session?.typeId && sessionTypes.some(st => st.id === session.typeId)) {
+            return session.typeId;
+        }
+        // Otherwise, or for new sessions, default to the first available type.
+        return sessionTypes[0]?.id || '';
+    };
+    
     const [date, setDate] = useState<Date>(session ? new Date(session.date) : new Date());
-    const [typeId, setTypeId] = useState<string>(session ? session.typeId : (sessionTypes[0]?.id || ''));
+    const [typeId, setTypeId] = useState<string>(getInitialTypeId());
     const [notes, setNotes] = useState(session?.notes || '');
     const [actionItems, setActionItems] = useState(session?.actionItems || '');
     const [isAiLoadingSummary, setIsAiLoadingSummary] = useState(false);
     const [isAiLoadingActions, setIsAiLoadingActions] = useState(false);
     
     const hasApiKey = !!appSettings.geminiApiKey;
+
+    useEffect(() => {
+        // If the list of session types changes (e.g., after a restore),
+        // re-validate the selected typeId.
+        if (!sessionTypes.some(st => st.id === typeId)) {
+            setTypeId(sessionTypes[0]?.id || '');
+        }
+    }, [sessionTypes, typeId]);
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
